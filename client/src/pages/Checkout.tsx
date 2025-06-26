@@ -249,7 +249,7 @@ export default function Checkout() {
                       theme: 'night',
                       variables: {
                         colorPrimary: '#d4af37',
-                        colorBackground: '#1e2832',
+                        colorBackground: '#0F172A',
                         colorText: '#ffffff',
                         colorDanger: '#ef4444',
                         fontFamily: 'Inter, system-ui, sans-serif',

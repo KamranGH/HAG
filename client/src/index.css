@@ -26,15 +26,15 @@
   --ring: hsl(20, 14.3%, 4.1%);
   --radius: 0.5rem;
   
-  /* Custom navy theme colors - matching reference image */
-  --navy-900: hsl(218, 28%, 13%);
-  --navy-800: hsl(218, 25%, 18%);
-  --navy-700: hsl(218, 22%, 25%);
-  --navy-600: hsl(218, 18%, 32%);
+  /* Custom navy theme colors - slate-900 based */
+  --navy-900: #0F172A;
+  --navy-800: hsl(220, 26%, 18%);
+  --navy-700: hsl(220, 26%, 25%);
+  --navy-600: hsl(220, 26%, 32%);
 }
 
 .dark {
-  --background: hsl(218, 28%, 13%);
+  --background: #0F172A;
   --foreground: hsl(0, 0%, 98%);
   --muted: hsl(220, 22%, 17%);
   --muted-foreground: hsl(240, 5%, 64.9%);
