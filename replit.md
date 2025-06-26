@@ -98,6 +98,7 @@ This is a complete, production-quality online art gallery application that preci
 
 ## Changelog
 - June 26, 2025. Initial setup
+- June 26, 2025. Stripe payment form customized with dark theme to match gallery design
 
 ## User Preferences
 

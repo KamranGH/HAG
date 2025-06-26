@@ -241,7 +241,55 @@ export default function Checkout() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <Elements 
+                  stripe={stripePromise} 
+                  options={{ 
+                    clientSecret,
+                    appearance: {
+                      theme: 'night',
+                      variables: {
+                        colorPrimary: '#d4af37',
+                        colorBackground: '#1e2832',
+                        colorText: '#ffffff',
+                        colorDanger: '#ef4444',
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        spacingUnit: '4px',
+                        borderRadius: '6px',
+                        colorTextSecondary: '#94a3b8',
+                        colorTextPlaceholder: '#64748b',
+                        colorIconTab: '#94a3b8',
+                        colorLogo: 'dark'
+                      },
+                      rules: {
+                        '.Input': {
+                          backgroundColor: '#283747',
+                          border: '1px solid #3a4d5c',
+                          color: '#ffffff'
+                        },
+                        '.Input:focus': {
+                          border: '2px solid #d4af37',
+                          boxShadow: '0 0 0 1px #d4af37'
+                        },
+                        '.Label': {
+                          color: '#ffffff',
+                          fontWeight: '500'
+                        },
+                        '.Tab': {
+                          backgroundColor: '#283747',
+                          border: '1px solid #3a4d5c',
+                          color: '#ffffff'
+                        },
+                        '.Tab:hover': {
+                          backgroundColor: '#3a4d5c'
+                        },
+                        '.Tab--selected': {
+                          backgroundColor: '#d4af37',
+                          color: '#1e2832'
+                        }
+                      }
+                    }
+                  }}
+                >
                   <CheckoutForm 
                     cartItems={cartItems} 
                     customerData={customerData}
