@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertArtworkSchema } from "@shared/schema";
+import { insertArtworkSchema, type Artwork } from "@shared/schema";
 import { z } from "zod";
 import ImageUpload from "./ImageUpload";
 import { Plus, Trash2 } from "lucide-react";
@@ -27,40 +27,53 @@ type FormData = z.infer<typeof formSchema>;
 interface AddArtworkModalProps {
   isOpen: boolean;
   onClose: () => void;
+  editingArtwork?: Artwork | null;
 }
 
-export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProps) {
+export default function AddArtworkModal({ isOpen, onClose, editingArtwork }: AddArtworkModalProps) {
   const [printOptions, setPrintOptions] = useState([{ size: "", price: 0 }]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isEditing = !!editingArtwork;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      year: new Date().getFullYear(),
-      medium: "",
-      originalDimensions: "",
-      originalPrice: "0",
-      originalAvailable: true,
-      originalSold: false,
-      printsAvailable: true,
-      printOptions: [],
-      images: [],
+      title: editingArtwork?.title || "",
+      description: editingArtwork?.description || "",
+      year: editingArtwork?.year || new Date().getFullYear(),
+      medium: editingArtwork?.medium || "",
+      originalDimensions: editingArtwork?.originalDimensions || "",
+      originalPrice: editingArtwork?.originalPrice || "0",
+      originalAvailable: editingArtwork?.originalAvailable ?? true,
+      originalSold: editingArtwork?.originalSold ?? false,
+      printsAvailable: editingArtwork?.printsAvailable ?? true,
+      printOptions: editingArtwork?.printOptions || [],
+      images: editingArtwork?.images || [],
       displayOrder: 0,
     },
   });
 
-  const createArtworkMutation = useMutation({
+  // Initialize print options when editing
+  useEffect(() => {
+    if (editingArtwork?.printOptions) {
+      setPrintOptions(editingArtwork.printOptions.length > 0 ? editingArtwork.printOptions : [{ size: "", price: 0 }]);
+    }
+  }, [editingArtwork]);
+
+  const saveArtworkMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      return await apiRequest("POST", "/api/artworks", data);
+      if (isEditing && editingArtwork) {
+        return await apiRequest("PUT", `/api/artworks/${editingArtwork.id}`, data);
+      } else {
+        return await apiRequest("POST", "/api/artworks", data);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artworks"] });
       toast({
         title: "Success",
-        description: "Artwork created successfully!",
+        description: isEditing ? "Artwork updated successfully!" : "Artwork created successfully!",
       });
       onClose();
       form.reset();
@@ -69,7 +82,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create artwork",
+        description: error.message || (isEditing ? "Failed to update artwork" : "Failed to create artwork"),
         variant: "destructive",
       });
     },
@@ -80,7 +93,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
       ...data,
       printOptions: printOptions.filter(option => option.size && option.price > 0),
     };
-    createArtworkMutation.mutate(formattedData);
+    saveArtworkMutation.mutate(formattedData);
   };
 
   const addPrintOption = () => {
@@ -102,7 +115,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-navy-800 border-navy-700">
         <DialogHeader>
           <DialogTitle className="text-2xl font-serif font-semibold text-white">
-            Add New Artwork
+            {isEditing ? "Edit Artwork" : "Add New Artwork"}
           </DialogTitle>
         </DialogHeader>
 
@@ -133,7 +146,8 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
                   <FormLabel className="text-white">Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      {...field} 
+                      {...field}
+                      value={field.value ?? ""}
                       rows={4}
                       className="bg-navy-700 border-navy-600 text-white focus:border-primary resize-none"
                     />
@@ -229,6 +243,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
                         type="number"
                         step="0.01"
                         {...field}
+                        value={field.value ?? ""}
                         className="bg-navy-700 border-navy-600 text-white focus:border-primary"
                       />
                     </FormControl>
@@ -245,7 +260,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
                         <Checkbox 
-                          checked={field.value}
+                          checked={!!field.value}
                           onCheckedChange={field.onChange}
                           className="border-navy-600"
                         />
@@ -262,7 +277,7 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
                         <Checkbox 
-                          checked={field.value}
+                          checked={!!field.value}
                           onCheckedChange={field.onChange}
                           className="border-navy-600"
                         />
@@ -322,9 +337,9 @@ export default function AddArtworkModal({ isOpen, onClose }: AddArtworkModalProp
               <Button 
                 type="submit" 
                 className="flex-1 bg-primary hover:bg-primary/90"
-                disabled={createArtworkMutation.isPending}
+                disabled={saveArtworkMutation.isPending}
               >
-                {createArtworkMutation.isPending ? "Saving..." : "Save Artwork"}
+                {saveArtworkMutation.isPending ? "Saving..." : (isEditing ? "Update Artwork" : "Save Artwork")}
               </Button>
               <Button 
                 type="button" 
