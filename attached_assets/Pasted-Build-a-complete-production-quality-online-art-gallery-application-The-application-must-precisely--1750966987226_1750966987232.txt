@@ -1,0 +1,64 @@
+Build a complete, production-quality online art gallery application. The application must precisely replicate the design, user experience, and functional behavior of an existing system. The visual aesthetic should be beautiful, modern, and distinctive, avoiding generic templates. Pay meticulous attention to user interface details, including hover states, micro-interactions, and overall responsiveness across devices.
+
+1. Core Application Purpose:
+The primary purpose is to provide an online platform for showcasing and selling artworks. Users should be able to browse the collection, view detailed information about each piece, add items to a shopping cart, and complete purchases. A separate administrative interface is required for managing the artwork collection.
+
+2. User Interface & Design Requirements:
+
+Visual Style: Implement a dark-themed interface with a sophisticated and artistic feel. Specific font styles should be used for titles (e.g., classic serif fonts) to convey an elegant brand identity.
+Interactivity: All interactive elements (buttons, cards, navigation) should have thoughtful hover states and subtle micro-interactions to enhance the user experience.
+Responsiveness: The entire application must be fully responsive and provide an optimal viewing and interaction experience on various screen sizes, from mobile devices to large desktops.
+Iconography: All icons used throughout the application should be consistent in style and sourced from a single, modern icon set.
+3. Key Application Features:
+
+
+**A. Public-Facing Features:**
+*   **Art Gallery Browsing:**
+    *   Display a main gallery view showing a collection of artworks.
+    *   Each artwork in the gallery should have a card displaying its title, primary image, and price range (e.g., 'Original: $X' or 'Prints: $Y - $Z').
+    *   Clicking an artwork card should navigate to a detailed view of that artwork.
+*   **Artwork Detail View:**
+    *   Show a large image of the artwork, with navigation controls if multiple images are available.
+    *   Display comprehensive details: title, full description (preserving line breaks), year, medium, and original dimensions.
+    *   Present purchase options: 'Original' (if available and not sold) and 'Print' (if available).
+    *   If 'Print' is selected, allow users to choose from various print sizes, each with its own price.
+    *   Include a quantity selector for prints.
+    *   Provide 'Buy Now' and 'Add to Cart' buttons.
+*   **Shopping Cart:**
+    *   Allow users to add original artworks or prints (with selected size and quantity) to a persistent shopping cart.
+    *   Display a summary of items in the cart, including images, titles, types (original/print), print dimensions, quantities, and individual item prices.
+    *   Enable users to adjust quantities for prints or remove items from the cart.
+    *   Show a clear subtotal and total amount.
+    *   Provide a 'Checkout' button that initiates the payment process.
+*   **Contact Form:** A dedicated page with a form for users to send inquiries (name, email, subject, message).
+*   **Payment Confirmation:** A dedicated page to display details of a successful payment, including order ID, total amount, payment date, and items purchased.
+
+**B. User Management Features:**
+*  Allow admin secret priviledges to access and manage changes
+
+**C. Administrative Features (Accessible only to the admin):**
+*   **Artwork Management Dashboard:** A section within the gallery view that appears for authenticated users, allowing them to manage artworks.
+*   **Add New Artwork:** A form to input all artwork details: title, description, year, medium, original dimensions, availability (original, print, or both), original price, whether the original is sold, and multiple print options (dimensions and price for each).
+*   **Image Uploads:** Support for uploading multiple images per artwork. The interface should allow users to preview uploaded images, reorder them, and remove them before saving.
+*   **Edit Artwork:** Ability to modify all details of an existing artwork.
+*   **Delete Artwork:** Functionality to remove artworks from the gallery.
+*   **Reorder Artworks:** Controls to change the display order of artworks in the main gallery view.
+4. Data Structure & Persistence Requirements:
+
+Artwork Data: Store comprehensive details for each artwork, including a unique identifier, title, description, multiple image URLs, year of creation, artistic medium, original dimensions, flags for original and print availability, the price of the original, a flag indicating if the original is sold, and a structured list of print options (each with dimensions and price). A display order attribute is also required.
+User Data: Store user credentials securely for authentication.
+Customer & Order Data: Maintain records for customer profiles, linking them to user accounts where applicable (supporting both logged-in users and guest checkouts). Store details of each order, including items purchased, total amount, currency, and payment status.
+Data Relationships: Establish clear relationships between artworks, users, customer profiles, and orders.
+Data Persistence: All application data must be stored persistently and retrieved efficiently.
+Access Control: Implement robust access control mechanisms:
+Only authenticated administrators can add, edit, delete, or reorder artworks.
+Users can only view their own order history and customer information.
+5. External Integration Requirements:
+
+Payment Gateway: Integrate with a payment processing service to handle secure online transactions. This integration must manage the creation of orders, approval, capture of funds, and handling of payment errors or cancellations.
+Authentication System: Utilize a robust system for user authentication and session management.
+6. Quality and Performance:
+
+The application must be built to production standards, ensuring robustness, security, and maintainability.
+It should handle data loading and submission with appropriate loading indicators and error messages.
+The codebase should be clean, well-organized, and follow modern development practices."
