@@ -101,6 +101,8 @@ This is a complete, production-quality online art gallery application that preci
 - June 26, 2025. Stripe payment form customized with dark theme to match gallery design
 - June 26, 2025. Updated typography and theme to match reference image - added Playfair Display serif font for elegant title styling and darker blue background theme
 - June 26, 2025. Added newsletter signup section to footer and updated background to slate-900 (#0F172A) for deeper, more sophisticated aesthetic
+- June 26, 2025. Enhanced admin panel with full artwork management - editing, deleting, and reordering capabilities
+- June 26, 2025. Fixed image upload system to use actual uploaded files instead of placeholders, increased server request limit to 50MB
 
 ## User Preferences
 
