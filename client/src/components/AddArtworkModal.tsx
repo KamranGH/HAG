@@ -91,6 +91,7 @@ export default function AddArtworkModal({ isOpen, onClose, editingArtwork }: Add
   const handleSubmit = (data: FormData) => {
     const formattedData = {
       ...data,
+      originalSold: !data.originalAvailable, // Set sold to opposite of available
       printOptions: printOptions.filter(option => option.size && option.price > 0),
     };
     saveArtworkMutation.mutate(formattedData);
@@ -265,7 +266,7 @@ export default function AddArtworkModal({ isOpen, onClose, editingArtwork }: Add
                           className="border-navy-600"
                         />
                       </FormControl>
-                      <FormLabel className="text-white text-sm">Original Available</FormLabel>
+                      <FormLabel className="text-white text-sm">Original Available (uncheck if sold)</FormLabel>
                     </FormItem>
                   )}
                 />
