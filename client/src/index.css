@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,15 +26,15 @@
   --ring: hsl(20, 14.3%, 4.1%);
   --radius: 0.5rem;
   
-  /* Custom navy theme colors */
-  --navy-900: hsl(220, 26%, 11%);
-  --navy-800: hsl(220, 22%, 17%);
-  --navy-700: hsl(220, 18%, 26%);
-  --navy-600: hsl(220, 15%, 35%);
+  /* Custom navy theme colors - matching reference image */
+  --navy-900: hsl(218, 28%, 13%);
+  --navy-800: hsl(218, 25%, 18%);
+  --navy-700: hsl(218, 22%, 25%);
+  --navy-600: hsl(218, 18%, 32%);
 }
 
 .dark {
-  --background: hsl(220, 26%, 11%);
+  --background: hsl(218, 28%, 13%);
   --foreground: hsl(0, 0%, 98%);
   --muted: hsl(220, 22%, 17%);
   --muted-foreground: hsl(240, 5%, 64.9%);
@@ -107,6 +109,13 @@
   
   .aspect-artwork {
     aspect-ratio: 2 / 3;
+  }
+
+  .gallery-logo {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 }
 

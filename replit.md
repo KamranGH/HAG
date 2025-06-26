@@ -99,6 +99,7 @@ This is a complete, production-quality online art gallery application that preci
 ## Changelog
 - June 26, 2025. Initial setup
 - June 26, 2025. Stripe payment form customized with dark theme to match gallery design
+- June 26, 2025. Updated typography and theme to match reference image - added Playfair Display serif font for elegant title styling and darker blue background theme
 
 ## User Preferences
 
