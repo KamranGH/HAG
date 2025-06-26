@@ -18,18 +18,17 @@ export default function ImageUpload({ value = [], onChange }: ImageUploadProps) 
     setIsUploading(true);
     
     try {
-      // For now, we'll use placeholder URLs since we don't have actual file upload
-      // In production, you would upload to a service like Cloudinary, AWS S3, etc.
-      const newUrls = files.map(() => {
-        // Generate a random artwork placeholder
-        const placeholders = [
-          "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1200",
-          "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1200",
-          "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1200",
-          "https://images.unsplash.com/photo-1578321272176-b7bbc0679853?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1200"
-        ];
-        return placeholders[Math.floor(Math.random() * placeholders.length)];
-      });
+      // Convert files to base64 data URLs so you can see your actual uploaded images
+      const newUrls = await Promise.all(
+        files.map(file => {
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        })
+      );
       
       onChange([...value, ...newUrls]);
     } catch (error) {
@@ -54,8 +53,8 @@ export default function ImageUpload({ value = [], onChange }: ImageUploadProps) 
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-gray-300">Click to upload images or drag and drop</p>
-        <p className="text-sm text-gray-400 mt-1">Support for multiple images (JPG, PNG)</p>
+        <p className="text-gray-300">Click to upload your artwork images</p>
+        <p className="text-sm text-gray-400 mt-1">Upload your actual artwork photos (JPG, PNG)</p>
         {isUploading && (
           <p className="text-sm text-primary mt-2">Uploading...</p>
         )}
