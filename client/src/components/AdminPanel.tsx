@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,17 +6,26 @@ import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon } from "lucide-rea
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "react-beautiful-dnd";
 import AddArtworkModal from "./AddArtworkModal";
 import type { Artwork } from "@shared/schema";
 
 export default function AdminPanel() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
+  const [artworkList, setArtworkList] = useState<Artwork[]>([]);
   const { toast } = useToast();
 
   const { data: artworks, isLoading } = useQuery<Artwork[]>({
     queryKey: ['/api/artworks'],
   });
+
+  // Update local state when data changes
+  useEffect(() => {
+    if (artworks) {
+      setArtworkList(artworks);
+    }
+  }, [artworks]);
 
   const deleteArtworkMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -64,6 +73,20 @@ export default function AdminPanel() {
     }
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(artworkList);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setArtworkList(items);
+    
+    // Send the new order to the server
+    const artworkIds = items.map(item => item.id);
+    reorderArtworksMutation.mutate(artworkIds);
+  };
+
   return (
     <>
       <Card className="mb-8 bg-navy-800 border-navy-700">
@@ -95,72 +118,99 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
-          ) : artworks && artworks.length > 0 ? (
-            <div className="space-y-3">
-              {artworks.map((artwork) => (
-                <div 
-                  key={artwork.id}
-                  className="flex items-center justify-between bg-navy-700 rounded-lg p-4 hover:bg-navy-600 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
-                    
-                    <div className="flex items-center space-x-3">
-                      {artwork.images && artwork.images.length > 0 ? (
-                        <img 
-                          src={artwork.images[0]} 
-                          alt={artwork.title}
-                          className="w-12 h-16 object-cover rounded bg-navy-800"
-                        />
-                      ) : (
-                        <div className="w-12 h-16 bg-navy-800 rounded flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h3 className="font-semibold text-white">{artwork.title}</h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant="outline" className="text-primary border-primary">
-                            ${artwork.originalPrice}
-                          </Badge>
-                          {artwork.originalSold && (
-                            <Badge variant="destructive" className="text-xs">
-                              Original Sold
-                            </Badge>
-                          )}
-                          {artwork.printOptions && artwork.printOptions.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {artwork.printOptions.length} Print Options
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+          ) : artworkList && artworkList.length > 0 ? (
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="artworks">
+                {(provided) => (
+                  <div 
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-3"
+                  >
+                    {artworkList.map((artwork, index) => (
+                      <Draggable 
+                        key={artwork.id} 
+                        draggableId={artwork.id.toString()} 
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div 
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`flex items-center justify-between bg-navy-700 rounded-lg p-4 transition-colors ${
+                              snapshot.isDragging ? 'bg-navy-600 shadow-lg' : 'hover:bg-navy-600'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div 
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical className="w-4 h-4 text-gray-400" />
+                              </div>
+                              
+                              <div className="flex items-center space-x-3">
+                                {artwork.images && artwork.images.length > 0 ? (
+                                  <img 
+                                    src={artwork.images[0]} 
+                                    alt={artwork.title}
+                                    className="w-12 h-16 object-cover rounded bg-navy-800"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-16 bg-navy-800 rounded flex items-center justify-center">
+                                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                                  </div>
+                                )}
+                                
+                                <div>
+                                  <h3 className="font-semibold text-white">{artwork.title}</h3>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <Badge variant="outline" className="text-primary border-primary">
+                                      ${artwork.originalPrice}
+                                    </Badge>
+                                    {artwork.originalSold && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Original Sold
+                                      </Badge>
+                                    )}
+                                    {artwork.printOptions && artwork.printOptions.length > 0 && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {artwork.printOptions.length} Print Options
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingArtwork(artwork)}
+                                className="text-white border-navy-500 hover:bg-navy-600"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(artwork)}
+                                disabled={deleteArtworkMutation.isPending}
+                                className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingArtwork(artwork)}
-                      className="text-white border-navy-500 hover:bg-navy-600"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(artwork)}
-                      disabled={deleteArtworkMutation.isPending}
-                      className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           ) : (
             <div className="text-center py-8 text-gray-400">
               <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
