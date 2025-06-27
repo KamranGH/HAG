@@ -34,7 +34,155 @@ interface CustomerData {
   address: string;
   city: string;
   zipCode: string;
+  country: string;
 }
+
+// Interac e-Transfer payment form component
+const InteracPaymentForm = ({ cartItems, customerData, total }: {
+  cartItems: CartItem[];
+  customerData: CustomerData;
+  total: number;
+}) => {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const createOrderMutation = useMutation({
+    mutationFn: async ({ cartItems, customerData, totalAmount, subtotalAmount, shippingAmount }: {
+      cartItems: CartItem[];
+      customerData: CustomerData;
+      totalAmount: number;
+      subtotalAmount: number;
+      shippingAmount: number;
+    }) => {
+      // First create the customer
+      const customerResponse = await apiRequest("POST", "/api/customers", {
+        email: customerData.email,
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        address: customerData.address,
+        city: customerData.city,
+        zipCode: customerData.zipCode,
+      });
+      const customer = await customerResponse.json();
+
+      // Then create the order
+      const orderResponse = await apiRequest("POST", "/api/orders", {
+        customerId: customer.id,
+        subtotalAmount,
+        shippingAmount,
+        totalAmount,
+        status: "pending",
+        paymentMethod: "interac",
+      });
+      const order = await orderResponse.json();
+
+      // Add order items
+      for (const item of cartItems) {
+        await apiRequest("POST", "/api/order-items", {
+          orderId: order.id,
+          artworkId: item.artworkId,
+          type: item.type,
+          printSize: item.printSize,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        });
+      }
+
+      return order;
+    },
+  });
+
+  const handleInteracPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+
+    // Validate required billing information
+    if (!customerData.firstName || !customerData.lastName || !customerData.email || 
+        !customerData.address || !customerData.city || !customerData.zipCode) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all billing information fields",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      // Calculate amounts
+      const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+      const hasOriginals = cartItems.some(item => item.type === 'original');
+      const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
+      
+      // Create order first
+      const order = await createOrderMutation.mutateAsync({
+        cartItems,
+        customerData,
+        totalAmount: total,
+        subtotalAmount: subtotal,
+        shippingAmount: shippingCost,
+      });
+
+      // Create Interac e-Transfer request
+      const interacResponse = await apiRequest("POST", "/api/interac/create-payment", {
+        orderId: order.id,
+        amount: total,
+        customerEmail: customerData.email,
+        customerName: `${customerData.firstName} ${customerData.lastName}`,
+        memo: `Art Gallery Order #${order.id}`,
+      });
+
+      const { transferId, instructions } = await interacResponse.json();
+
+      // Clear cart and redirect to payment instructions
+      localStorage.removeItem('cart');
+      setLocation(`/interac-payment/${order.id}?transferId=${transferId}`);
+
+    } catch (error: any) {
+      toast({
+        title: "Payment Setup Failed",
+        description: error.message || "There was an error setting up your Interac payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleInteracPayment} className="space-y-6">
+      <div className="bg-navy-700 border border-navy-600 rounded-lg p-4">
+        <h3 className="text-lg font-medium text-white mb-2">Interac e-Transfer Payment</h3>
+        <div className="text-sm text-gray-300 space-y-2">
+          <p>• You'll receive an email with payment instructions</p>
+          <p>• Transfer directly from your Canadian bank account</p>
+          <p>• Lower fees than credit cards</p>
+          <p>• Secure and trusted by millions of Canadians</p>
+        </div>
+      </div>
+      
+      <div className="border border-navy-600 rounded-lg p-4 bg-navy-700">
+        <h4 className="font-medium text-white mb-2">How it works:</h4>
+        <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+          <li>Click "Send Interac e-Transfer" below</li>
+          <li>Check your email for payment instructions</li>
+          <li>Log into your online banking</li>
+          <li>Send the e-Transfer using the provided details</li>
+          <li>Your order will be processed once payment is received</li>
+        </ol>
+      </div>
+
+      <Button 
+        type="submit" 
+        disabled={isProcessing || createOrderMutation.isPending}
+        className="w-full bg-primary hover:bg-primary/90 text-white py-4 text-lg font-semibold"
+      >
+        {(isProcessing || createOrderMutation.isPending) ? "Setting up..." : `Send Interac e-Transfer - $${total.toFixed(2)} CAD`}
+      </Button>
+    </form>
+  );
+};
 
 const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret }: { 
   cartItems: CartItem[]; 
@@ -223,7 +371,19 @@ export default function Checkout() {
     address: "",
     city: "",
     zipCode: "",
+    country: "CA",
   });
+  
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'interac'>('stripe');
+  
+  // Auto-detect payment method based on country
+  useEffect(() => {
+    if (customerData.country === "CA") {
+      setPaymentMethod('interac');
+    } else {
+      setPaymentMethod('stripe');
+    }
+  }, [customerData.country]);
 
   const { data: artworks = [] } = useQuery<Artwork[]>({
     queryKey: ['/api/artworks'],
@@ -367,7 +527,7 @@ export default function Checkout() {
                   onChange={(e) => setCustomerData({...customerData, address: e.target.value})}
                   className="bg-navy-700 border-navy-600 text-white placeholder:text-gray-400 focus:border-primary"
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <Input
                     placeholder="City"
                     value={customerData.city}
@@ -380,6 +540,52 @@ export default function Checkout() {
                     onChange={(e) => setCustomerData({...customerData, zipCode: e.target.value})}
                     className="bg-navy-700 border-navy-600 text-white placeholder:text-gray-400 focus:border-primary"
                   />
+                  <select
+                    value={customerData.country}
+                    onChange={(e) => setCustomerData({...customerData, country: e.target.value})}
+                    className="bg-navy-700 border border-navy-600 text-white rounded-md px-3 py-2 focus:border-primary focus:outline-none"
+                  >
+                    <option value="CA">Canada</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="AU">Australia</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                
+                {/* Payment Method Selection */}
+                <div className="mt-6 p-4 bg-navy-700 rounded-lg">
+                  <h3 className="text-sm font-medium text-white mb-3">Payment Method</h3>
+                  <div className="space-y-2">
+                    {customerData.country === "CA" && (
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="interac"
+                          checked={paymentMethod === 'interac'}
+                          onChange={(e) => setPaymentMethod(e.target.value as 'interac')}
+                          className="text-primary"
+                        />
+                        <span className="text-white">Interac e-Transfer (Canadian customers)</span>
+                        <span className="text-xs text-gray-400">- Lower fees for Canadians</span>
+                      </label>
+                    )}
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="stripe"
+                        checked={paymentMethod === 'stripe'}
+                        onChange={(e) => setPaymentMethod(e.target.value as 'stripe')}
+                        className="text-primary"
+                      />
+                      <span className="text-white">Credit/Debit Card (International)</span>
+                      <span className="text-xs text-gray-400">- Visa, Mastercard, Amex</span>
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -387,11 +593,18 @@ export default function Checkout() {
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader>
                 <CardTitle className="text-xl font-serif font-medium text-white">
-                  Payment Method
+                  {paymentMethod === 'interac' ? 'Interac e-Transfer' : 'Payment'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Elements 
+                {paymentMethod === 'interac' ? (
+                  <InteracPaymentForm
+                    cartItems={cartItems}
+                    customerData={customerData}
+                    total={getTotal()}
+                  />
+                ) : (
+                  <Elements 
                   stripe={stripePromise} 
                   options={{ 
                     clientSecret,
@@ -447,6 +660,7 @@ export default function Checkout() {
                     clientSecret={clientSecret}
                   />
                 </Elements>
+                )}
               </CardContent>
             </Card>
           </div>

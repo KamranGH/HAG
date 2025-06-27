@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { useLocation } from "wouter";
+import { Order } from "@shared/schema";
 
 export default function PaymentConfirmation() {
   const { orderId } = useParams();

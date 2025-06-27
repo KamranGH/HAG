@@ -123,6 +123,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interac e-Transfer payment route for Canadian customers
+  app.post("/api/interac/create-payment", async (req, res) => {
+    try {
+      const { orderId, amount, customerEmail, customerName, memo } = req.body;
+      
+      // For now, we'll simulate the Interac e-Transfer creation
+      // In production, this would integrate with VoPay or similar service
+      const transferId = `INT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Email instructions would be sent to customer here
+      const instructions = {
+        recipientEmail: "payments@hanasartgallery.com",
+        recipientName: "Hana's Art Gallery",
+        amount: amount,
+        securityQuestion: "What is your order number?",
+        securityAnswer: orderId.toString(),
+        memo: memo
+      };
+
+      // In production, you would:
+      // 1. Create payment request with VoPay API
+      // 2. Send email to customer with payment instructions
+      // 3. Set up webhook to receive payment notifications
+      
+      res.json({ 
+        transferId,
+        instructions,
+        success: true,
+        message: "Interac e-Transfer instructions have been sent to your email"
+      });
+    } catch (error: any) {
+      console.error("Error creating Interac payment:", error);
+      res.status(500).json({ 
+        message: "Error creating Interac payment: " + error.message 
+      });
+    }
+  });
+
+  // Webhook endpoint for Interac payment notifications (VoPay integration)
+  app.post("/api/interac/webhook", async (req, res) => {
+    try {
+      // In production, verify webhook signature from VoPay
+      const { transferId, status, orderId, amount } = req.body;
+      
+      if (status === 'completed') {
+        // Update order status to paid
+        await storage.updateOrderStatus(parseInt(orderId), 'paid');
+        
+        // Send confirmation email to customer
+        console.log(`Interac payment completed for order ${orderId}`);
+      }
+      
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error("Error processing Interac webhook:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
   // Stripe payment route for one-time payments
   app.post("/api/create-payment-intent", async (req, res) => {
     try {

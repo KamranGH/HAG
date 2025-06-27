@@ -77,6 +77,7 @@ export const orders = pgTable("orders", {
   shippingAmount: decimal("shipping_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("usd"),
+  paymentMethod: varchar("payment_method", { length: 50 }).default("stripe"),
   status: varchar("status", { length: 50 }).default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
