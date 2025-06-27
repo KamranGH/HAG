@@ -1,5 +1,5 @@
-import { Instagram, Facebook } from "lucide-react";
-import { FaXTwitter } from "react-icons/fa6";
+import { Instagram, Facebook, ChevronLeft, ChevronRight } from "lucide-react";
+import { FaXTwitter, FaEtsy, FaPinterest, FaTiktok } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,9 +14,19 @@ import type { SocialMediaSetting } from "@shared/schema";
 
 interface FooterProps {
   isAdminMode?: boolean;
+  showProductNavigation?: boolean;
+  previousProduct?: { id: number; title: string } | null;
+  nextProduct?: { id: number; title: string } | null;
+  onNavigateToProduct?: (id: number) => void;
 }
 
-export default function Footer({ isAdminMode = false }: FooterProps) {
+export default function Footer({ 
+  isAdminMode = false, 
+  showProductNavigation = false,
+  previousProduct,
+  nextProduct,
+  onNavigateToProduct
+}: FooterProps) {
   const [email, setEmail] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { toast } = useToast();
@@ -36,6 +46,9 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
     instagram: { url: '#', isVisible: true },
     facebook: { url: '#', isVisible: true },
     x: { url: '#', isVisible: true },
+    etsy: { url: '#', isVisible: false },
+    pinterest: { url: '#', isVisible: false },
+    tiktok: { url: '#', isVisible: false },
   };
 
   const getSetting = (platform: string) => 
@@ -85,9 +98,36 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
   return (
     <footer className="border-t border-navy-700 py-12 mt-16 bg-navy-900">
       <div className="container mx-auto px-4">
-        {/* Newsletter Signup */}
-        <div className="text-center mb-8 max-w-md mx-auto">
-          <h3 className="gallery-logo text-lg font-medium text-white mb-2">
+        {/* Product Navigation & Newsletter Signup */}
+        <div className="text-center mb-8 max-w-2xl mx-auto">
+          {/* Product Navigation */}
+          {showProductNavigation && (
+            <div className="flex justify-between items-center mb-8 pb-6 border-b border-navy-700">
+              <Button
+                variant="ghost"
+                onClick={() => previousProduct && onNavigateToProduct?.(previousProduct.id)}
+                disabled={!previousProduct}
+                className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous Product
+              </Button>
+              
+              <Button
+                variant="ghost"
+                onClick={() => nextProduct && onNavigateToProduct?.(nextProduct.id)}
+                disabled={!nextProduct}
+                className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
+              >
+                Next Product
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          )}
+          
+          {/* Newsletter Signup */}
+          <div>
+            <h3 className="gallery-logo text-lg font-medium text-white mb-2">
             Join the Collector's List
           </h3>
           <p className="text-gray-400 text-sm mb-4">
@@ -108,6 +148,7 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
               Subscribe
             </Button>
           </form>
+          </div>
         </div>
 
         {/* Footer Bottom */}
@@ -148,6 +189,36 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
                   <FaXTwitter className="w-5 h-5" />
                 </a>
               )}
+              {getSetting('etsy').isVisible && (
+                <a 
+                  href={getSetting('etsy').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaEtsy className="w-5 h-5" />
+                </a>
+              )}
+              {getSetting('pinterest').isVisible && (
+                <a 
+                  href={getSetting('pinterest').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaPinterest className="w-5 h-5" />
+                </a>
+              )}
+              {getSetting('tiktok').isVisible && (
+                <a 
+                  href={getSetting('tiktok').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaTiktok className="w-5 h-5" />
+                </a>
+              )}
             </div>
             
             {/* Admin Settings */}
@@ -163,7 +234,7 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
                     <DialogTitle>Social Media Settings</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-6">
-                    {['instagram', 'facebook', 'x'].map((platform) => (
+                    {['instagram', 'facebook', 'x', 'etsy', 'pinterest', 'tiktok'].map((platform) => (
                       <div key={platform} className="space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="capitalize font-medium">{platform === 'x' ? 'X (Twitter)' : platform}</Label>

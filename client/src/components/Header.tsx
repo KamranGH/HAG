@@ -25,21 +25,11 @@ export default function Header({ isAdminMode = false, onToggleAdmin, showAdminBu
   const cartItems: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const isGalleryView = location === '/';
-  const showBackButton = !isGalleryView;
-
   return (
     <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-sm border-b border-navy-700">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          {showBackButton && (
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Gallery
-              </Button>
-            </Link>
-          )}
+          {/* Back button removed */}
         </div>
         
         <Link href="/">

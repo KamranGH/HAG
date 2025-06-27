@@ -341,32 +341,12 @@ export default function ArtworkDetail() {
         </div>
       </main>
       
-      {/* Product Navigation */}
-      <div className="container mx-auto px-4 py-8 border-t border-navy-800">
-        <div className="flex justify-between items-center">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation(`/artwork/${previousArtwork?.id}`)}
-            disabled={!previousArtwork}
-            className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Previous Product
-          </Button>
-          
-          <Button
-            variant="ghost"
-            onClick={() => setLocation(`/artwork/${nextArtwork?.id}`)}
-            disabled={!nextArtwork}
-            className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
-          >
-            Next Product
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      </div>
-      
-      <Footer />
+      <Footer 
+        showProductNavigation={true}
+        previousProduct={previousArtwork ? { id: previousArtwork.id, title: previousArtwork.title } : null}
+        nextProduct={nextArtwork ? { id: nextArtwork.id, title: nextArtwork.title } : null}
+        onNavigateToProduct={(id) => setLocation(`/artwork/${id}`)}
+      />
 
       {/* Image Popup Dialog */}
       <Dialog open={isImagePopupOpen} onOpenChange={setIsImagePopupOpen}>
@@ -388,7 +368,7 @@ export default function ArtworkDetail() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setImageZoom(Math.max(0.5, imageZoom - 0.25));
+                  setImageZoom(Math.max(0.5, imageZoom - 0.1));
                   setImageDrag({ x: 0, y: 0 });
                 }}
                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
@@ -399,7 +379,7 @@ export default function ArtworkDetail() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setImageZoom(Math.min(3, imageZoom + 0.25));
+                  setImageZoom(Math.min(3, imageZoom + 0.1));
                   setImageDrag({ x: 0, y: 0 });
                 }}
                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
