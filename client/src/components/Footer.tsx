@@ -98,11 +98,11 @@ export default function Footer({
   return (
     <footer className="border-t border-navy-700 py-12 mt-16 bg-navy-900">
       <div className="container mx-auto px-4">
-        {/* Product Navigation & Newsletter Signup */}
+        {/* Newsletter Signup with Product Navigation */}
         <div className="text-center mb-8 max-w-2xl mx-auto">
-          {/* Product Navigation */}
-          {showProductNavigation && (
-            <div className="flex justify-between items-center mb-8 pb-6 border-b border-navy-700">
+          {/* Newsletter Title with Product Navigation */}
+          <div className="flex items-center justify-between mb-2">
+            {showProductNavigation ? (
               <Button
                 variant="ghost"
                 onClick={() => previousProduct && onNavigateToProduct?.(previousProduct.id)}
@@ -112,7 +112,15 @@ export default function Footer({
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Previous Product
               </Button>
-              
+            ) : (
+              <div></div>
+            )}
+            
+            <h3 className="gallery-logo text-lg font-medium text-white">
+              Join the Collector's List
+            </h3>
+            
+            {showProductNavigation ? (
               <Button
                 variant="ghost"
                 onClick={() => nextProduct && onNavigateToProduct?.(nextProduct.id)}
@@ -122,14 +130,10 @@ export default function Footer({
                 Next Product
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
-            </div>
-          )}
-          
-          {/* Newsletter Signup */}
-          <div>
-            <h3 className="gallery-logo text-lg font-medium text-white mb-2">
-            Join the Collector's List
-          </h3>
+            ) : (
+              <div></div>
+            )}
+          </div>
           <p className="text-gray-400 text-sm mb-4">
             Be the first to know about new original paintings and prints
           </p>
@@ -148,7 +152,6 @@ export default function Footer({
               Subscribe
             </Button>
           </form>
-          </div>
         </div>
 
         {/* Footer Bottom */}

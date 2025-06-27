@@ -31,6 +31,8 @@ export default function ArtworkDetail() {
   const [printQuantity, setPrintQuantity] = useState(1);
   const [isImagePopupOpen, setIsImagePopupOpen] = useState(false);
   const [imageZoom, setImageZoom] = useState(1);
+  const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+  const currentZoomIndex = zoomLevels.findIndex(level => Math.abs(level - imageZoom) < 0.01);
   const [imageDrag, setImageDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -368,10 +370,12 @@ export default function ArtworkDetail() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setImageZoom(Math.max(0.5, imageZoom - 0.1));
+                  const newIndex = Math.max(0, currentZoomIndex - 1);
+                  setImageZoom(zoomLevels[newIndex]);
                   setImageDrag({ x: 0, y: 0 });
                 }}
-                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
+                disabled={currentZoomIndex <= 0}
+                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70 disabled:opacity-30"
               >
                 <ZoomOut className="w-4 h-4" />
               </Button>
@@ -379,10 +383,12 @@ export default function ArtworkDetail() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setImageZoom(Math.min(3, imageZoom + 0.1));
+                  const newIndex = Math.min(zoomLevels.length - 1, currentZoomIndex + 1);
+                  setImageZoom(zoomLevels[newIndex]);
                   setImageDrag({ x: 0, y: 0 });
                 }}
-                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
+                disabled={currentZoomIndex >= zoomLevels.length - 1}
+                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70 disabled:opacity-30"
               >
                 <ZoomIn className="w-4 h-4" />
               </Button>
