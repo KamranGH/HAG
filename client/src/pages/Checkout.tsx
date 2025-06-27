@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,22 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import type { Artwork } from "@shared/schema";
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
+// Optimized cart item structure
 interface CartItem {
   id: string;
   artworkId: number;
-  artworkTitle: string;
-  artworkImage: string;
   type: 'original' | 'print';
   printSize?: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number;
 }
 
 interface CustomerData {
@@ -107,9 +106,17 @@ const CheckoutForm = ({ cartItems, customerData, subtotal }: {
   );
 };
 
+// Enhanced cart item with artwork details for display
+interface CartItemWithDetails extends CartItem {
+  artworkTitle: string;
+  artworkImage: string;
+  totalPrice: number;
+}
+
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItemsWithDetails, setCartItemsWithDetails] = useState<CartItemWithDetails[]>([]);
   const [clientSecret, setClientSecret] = useState("");
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: "",
@@ -120,6 +127,26 @@ export default function Checkout() {
     zipCode: "",
   });
 
+  const { data: artworks = [] } = useQuery<Artwork[]>({
+    queryKey: ['/api/artworks'],
+  });
+
+  // Convert cart items to items with details
+  useEffect(() => {
+    if (cartItems.length > 0 && artworks.length > 0) {
+      const itemsWithDetails = cartItems.map(item => {
+        const artwork = artworks.find(a => a.id === item.artworkId);
+        return {
+          ...item,
+          artworkTitle: artwork?.title || 'Unknown Artwork',
+          artworkImage: artwork?.images?.[0] || '',
+          totalPrice: item.unitPrice * item.quantity,
+        };
+      });
+      setCartItemsWithDetails(itemsWithDetails);
+    }
+  }, [cartItems, artworks]);
+
   useEffect(() => {
     const items: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
     if (items.length === 0) {
@@ -129,7 +156,7 @@ export default function Checkout() {
     setCartItems(items);
 
     // Create payment intent
-    const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const subtotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
     apiRequest("POST", "/api/create-payment-intent", { 
       amount: subtotal,
       metadata: {
@@ -152,7 +179,10 @@ export default function Checkout() {
   }, [setLocation]);
 
   const getSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    if (cartItemsWithDetails.length > 0) {
+      return cartItemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
+    }
+    return cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
   };
 
   const getImageUrl = (url: string) => {
@@ -310,7 +340,7 @@ export default function Checkout() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 mb-6">
-                  {cartItems.map((item) => (
+                  {cartItemsWithDetails.map((item) => (
                     <div key={item.id} className="flex gap-3">
                       <div className="w-16 h-20 bg-navy-700 rounded overflow-hidden flex-shrink-0">
                         <img
