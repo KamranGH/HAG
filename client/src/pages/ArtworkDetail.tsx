@@ -71,12 +71,38 @@ export default function ArtworkDetail() {
       existingCart.push(item);
     }
     
-    localStorage.setItem('cart', JSON.stringify(existingCart));
-    
-    toast({
-      title: "Added to Cart",
-      description: `${item.artworkTitle} has been added to your cart.`,
-    });
+    try {
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+      toast({
+        title: "Added to Cart",
+        description: `${item.artworkTitle} has been added to your cart.`,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        // Clear cart and try to add just this item
+        localStorage.removeItem('cart');
+        try {
+          localStorage.setItem('cart', JSON.stringify([item]));
+          toast({
+            title: "Cart Cleared and Item Added",
+            description: "Your cart was full, so we cleared it and added this item.",
+            variant: "destructive",
+          });
+        } catch {
+          toast({
+            title: "Unable to Add to Cart",
+            description: "Storage is full. Please clear your browser data.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Error Adding to Cart",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const handleAddOriginalToCart = () => {

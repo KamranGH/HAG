@@ -29,7 +29,15 @@ export default function Cart() {
 
   const updateCart = (items: CartItem[]) => {
     setCartItems(items);
-    localStorage.setItem('cart', JSON.stringify(items));
+    try {
+      localStorage.setItem('cart', JSON.stringify(items));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        // Clear cart and reload page to reset state
+        localStorage.removeItem('cart');
+        window.location.reload();
+      }
+    }
   };
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
