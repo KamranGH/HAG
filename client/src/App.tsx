@@ -11,7 +11,7 @@ import Contact from "@/pages/Contact";
 import Checkout from "@/pages/Checkout";
 import CheckoutSimple from "@/pages/CheckoutSimple";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
-import InteracPayment from "@/pages/InteracPayment";
+
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 
@@ -24,7 +24,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/checkout" component={CheckoutSimple} />
       <Route path="/payment-confirmation/:orderId" component={PaymentConfirmation} />
-      <Route path="/interac-payment/:orderId" component={InteracPayment} />
+
       <Route path="/landing" component={Landing} />
       <Route component={NotFound} />
     </Switch>

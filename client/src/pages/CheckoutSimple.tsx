@@ -1,19 +1,23 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import type { Artwork } from "@shared/schema";
-import { CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { ChevronDown, ChevronUp, Truck, Shield, ArrowLeft } from "lucide-react";
 
+// Load Stripe
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
 }
@@ -37,227 +41,62 @@ interface CustomerData {
   city: string;
   zipCode: string;
   country: string;
+  specialInstructions?: string;
 }
 
-// Step Progress Component
-const StepProgress = ({ currentStep }: { currentStep: number }) => (
-  <div className="mb-8">
-    <div className="flex items-center justify-center space-x-8">
-      <div className="flex items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-          currentStep >= 1 ? 'bg-white text-black' : 'bg-gray-600 text-gray-300'
-        }`}>
-          {currentStep > 1 ? <CheckCircle className="w-5 h-5" /> : '1'}
-        </div>
-        <span className={`ml-2 text-sm ${currentStep >= 1 ? 'text-white' : 'text-gray-400'}`}>
-          Cart
-        </span>
-      </div>
-      <div className={`h-px flex-1 ${currentStep >= 2 ? 'bg-white' : 'bg-gray-600'}`} />
-      <div className="flex items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-          currentStep >= 2 ? 'bg-white text-black' : 'bg-gray-600 text-gray-300'
-        }`}>
-          {currentStep > 2 ? <CheckCircle className="w-5 h-5" /> : '2'}
-        </div>
-        <span className={`ml-2 text-sm ${currentStep >= 2 ? 'text-white' : 'text-gray-400'}`}>
-          Details
-        </span>
-      </div>
-      <div className={`h-px flex-1 ${currentStep >= 3 ? 'bg-white' : 'bg-gray-600'}`} />
-      <div className="flex items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-          currentStep >= 3 ? 'bg-white text-black' : 'bg-gray-600 text-gray-300'
-        }`}>
-          3
-        </div>
-        <span className={`ml-2 text-sm ${currentStep >= 3 ? 'text-white' : 'text-gray-400'}`}>
-          Payment
-        </span>
-      </div>
-    </div>
-  </div>
-);
+const customerDataSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email"),
+  phone: z.string().min(1, "Phone number is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  zipCode: z.string().min(1, "ZIP code is required"),
+  country: z.string().min(1, "Country is required"),
+  specialInstructions: z.string().optional(),
+});
 
-// Interac Payment Form
-const InteracPaymentForm = ({ cartItems, customerData, total, customInstructions }: {
-  cartItems: CartItem[];
-  customerData: CustomerData;
-  total: number;
-  customInstructions: string;
-}) => {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+interface CartItemWithDetails extends CartItem {
+  artworkTitle: string;
+  artworkImage: string;
+  totalPrice: number;
+}
 
-  const createOrderMutation = useMutation({
-    mutationFn: async ({ cartItems, customerData, totalAmount, subtotalAmount, shippingAmount }: {
-      cartItems: CartItem[];
-      customerData: CustomerData;
-      totalAmount: number;
-      subtotalAmount: number;
-      shippingAmount: number;
-    }) => {
-      // Create customer
-      const customerResponse = await apiRequest("POST", "/api/customers", {
-        email: customerData.email,
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
-        address: customerData.address,
-        city: customerData.city,
-        zipCode: customerData.zipCode,
-      });
-      const customer = await customerResponse.json();
-
-      // Create order
-      const orderResponse = await apiRequest("POST", "/api/orders", {
-        customerId: customer.id,
-        subtotalAmount,
-        shippingAmount,
-        totalAmount,
-        status: "pending",
-        paymentMethod: "interac",
-      });
-      const order = await orderResponse.json();
-
-      // Add order items
-      for (const item of cartItems) {
-        await apiRequest("POST", "/api/order-items", {
-          orderId: order.id,
-          artworkId: item.artworkId,
-          type: item.type,
-          printSize: item.printSize,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        });
-      }
-
-      return order;
-    },
-  });
-
-  const handleInteracPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-
-    try {
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-      const hasOriginals = cartItems.some(item => item.type === 'original');
-      const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
-      
-      const order = await createOrderMutation.mutateAsync({
-        cartItems,
-        customerData,
-        totalAmount: total,
-        subtotalAmount: subtotal,
-        shippingAmount: shippingCost,
-      });
-
-      const interacResponse = await apiRequest("POST", "/api/interac/create-payment", {
-        orderId: order.id,
-        amount: total,
-        customerEmail: customerData.email,
-        customerName: `${customerData.firstName} ${customerData.lastName}`,
-        memo: `Art Gallery Order #${order.id}`,
-      });
-
-      localStorage.removeItem('cart');
-      setLocation(`/interac-payment/${order.id}`);
-
-    } catch (error: any) {
-      toast({
-        title: "Payment Setup Failed",
-        description: error.message || "There was an error setting up your Interac payment",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-blue-600 text-white p-4 rounded-lg">
-        <h3 className="font-medium mb-2">Interac e-Transfer</h3>
-        <p className="text-sm">Secure payment directly from your Canadian bank account</p>
-      </div>
-      <Button 
-        onClick={handleInteracPayment}
-        disabled={isProcessing || createOrderMutation.isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold"
-      >
-        {isProcessing ? "Setting up..." : `Pay with Interac e-Transfer`}
-      </Button>
-    </div>
-  );
-};
-
-// Stripe Payment Form
-const StripePaymentForm = ({ cartItems, customerData, total, clientSecret }: {
-  cartItems: CartItem[];
-  customerData: CustomerData;
-  total: number;
+const CheckoutForm = ({ clientSecret, customerData, onPaymentSuccess }: {
   clientSecret: string;
+  customerData: CustomerData;
+  onPaymentSuccess: (orderId: number) => void;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const createOrderMutation = useMutation({
-    mutationFn: async ({ cartItems, customerData, totalAmount, subtotalAmount, shippingAmount }: {
-      cartItems: CartItem[];
-      customerData: CustomerData;
-      totalAmount: number;
-      subtotalAmount: number;
-      shippingAmount: number;
-    }) => {
-      const customerResponse = await apiRequest("POST", "/api/customers", {
-        email: customerData.email,
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
-        address: customerData.address,
-        city: customerData.city,
-        zipCode: customerData.zipCode,
-      });
-      const customer = await customerResponse.json();
-
-      const orderResponse = await apiRequest("POST", "/api/orders", {
-        customerId: customer.id,
-        subtotalAmount,
-        shippingAmount,
-        totalAmount,
-        status: "pending",
-        paymentMethod: "stripe",
-      });
-      const order = await orderResponse.json();
-
-      for (const item of cartItems) {
-        await apiRequest("POST", "/api/order-items", {
-          orderId: order.id,
-          artworkId: item.artworkId,
-          type: item.type,
-          printSize: item.printSize,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        });
-      }
-
-      return order;
-    },
-  });
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    
+    if (!stripe || !elements) {
+      return;
+    }
 
     setIsProcessing(true);
 
     try {
-      const { error, paymentIntent } = await stripe.confirmPayment({
+      // Create order first
+      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+      const orderResponse = await apiRequest('POST', '/api/orders', {
+        customerData,
+        orderItems: cartItems
+      });
+      const order = await orderResponse.json();
+
+      // Confirm payment
+      const { error } = await stripe.confirmPayment({
         elements,
-        redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/payment-confirmation/${order.id}`,
+        },
+        redirect: 'if_required',
       });
 
       if (error) {
@@ -266,26 +105,15 @@ const StripePaymentForm = ({ cartItems, customerData, total, clientSecret }: {
           description: error.message,
           variant: "destructive",
         });
-      } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-        const hasOriginals = cartItems.some(item => item.type === 'original');
-        const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
-        
-        const order = await createOrderMutation.mutateAsync({
-          cartItems,
-          customerData,
-          totalAmount: total,
-          subtotalAmount: subtotal,
-          shippingAmount: shippingCost,
-        });
-
+      } else {
+        // Clear cart and redirect
         localStorage.removeItem('cart');
-        setLocation(`/payment-confirmation/${order.id}`);
+        onPaymentSuccess(order.id);
       }
     } catch (error: any) {
       toast({
-        title: "Payment Failed",
-        description: error.message || "There was an error processing your payment",
+        title: "Error",
+        description: "There was an error processing your order.",
         variant: "destructive",
       });
     } finally {
@@ -294,14 +122,21 @@ const StripePaymentForm = ({ cartItems, customerData, total, clientSecret }: {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement 
+        options={{
+          layout: {
+            type: 'tabs',
+            defaultCollapsed: false,
+          }
+        }}
+      />
       <Button 
         type="submit" 
-        disabled={!stripe || !elements || isProcessing || createOrderMutation.isPending}
-        className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-4 text-lg font-semibold"
+        disabled={!stripe || !elements || isProcessing}
+        className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3"
       >
-        {isProcessing ? "Processing..." : `Complete Payment - $${total.toFixed(2)} ${customerData.country === 'Canada' ? 'CAD' : 'USD'}`}
+        {isProcessing ? "Processing..." : "Complete Order"}
       </Button>
     </form>
   );
@@ -309,315 +144,418 @@ const StripePaymentForm = ({ cartItems, customerData, total, clientSecret }: {
 
 export default function CheckoutSimple() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [customerData, setCustomerData] = useState<CustomerData | null>(null);
   const [clientSecret, setClientSecret] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'interac'>('stripe');
-  const [customerData, setCustomerData] = useState<CustomerData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    zipCode: '',
-    country: ''
+  const [specialNotesOpen, setSpecialNotesOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Get cart items
+  const cartItems: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
+
+  // Fetch artwork details for cart items
+  const { data: cartItemsWithDetails = [] } = useQuery({
+    queryKey: ['/api/cart-details'],
+    queryFn: async (): Promise<CartItemWithDetails[]> => {
+      const items = await Promise.all(
+        cartItems.map(async (item) => {
+          const response = await apiRequest('GET', `/api/artworks/${item.artworkId}`);
+          const artwork = await response.json();
+          return {
+            ...item,
+            artworkTitle: artwork.title,
+            artworkImage: artwork.images?.[0] || '',
+            totalPrice: item.unitPrice * item.quantity,
+          };
+        })
+      );
+      return items;
+    },
+    enabled: cartItems.length > 0,
   });
-  const [customInstructions, setCustomInstructions] = useState('');
 
-  const { data: artworks = [] } = useQuery<Artwork[]>({
-    queryKey: ['/api/artworks'],
+  // Calculate totals
+  const subtotal = cartItemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
+  const hasOriginals = cartItemsWithDetails.some(item => item.type === 'original');
+  const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
+  const total = subtotal + shippingCost;
+
+  const form = useForm<CustomerData>({
+    resolver: zodResolver(customerDataSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      zipCode: "",
+      country: "US",
+      specialInstructions: "",
+    },
   });
 
-  useEffect(() => {
-    const items: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(items);
-
-    if (items.length === 0) {
-      setLocation('/cart');
-    }
-  }, [setLocation]);
-
-  // Auto-select payment method based on country
-  useEffect(() => {
-    if (customerData.country === 'Canada') {
-      setPaymentMethod('interac');
-    } else if (customerData.country && customerData.country !== 'Canada') {
-      setPaymentMethod('stripe');
-    }
-  }, [customerData.country]);
-
-  // Create payment intent for Stripe
-  useEffect(() => {
-    if (cartItems.length > 0 && paymentMethod === 'stripe') {
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-      const hasOriginals = cartItems.some(item => item.type === 'original');
-      const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
-      const total = subtotal + shippingCost;
-
-      apiRequest("POST", "/api/create-payment-intent", {
+  // Create payment intent when customer data is submitted
+  const createPaymentIntent = useMutation({
+    mutationFn: async (data: CustomerData) => {
+      const response = await apiRequest('POST', '/api/create-payment-intent', {
         amount: total,
-        currency: customerData.country === 'Canada' ? 'cad' : 'usd',
-        shipping: customerData,
-      })
-        .then(res => res.json())
-        .then(data => setClientSecret(data.clientSecret))
-        .catch(error => {
-          console.error('Error creating payment intent:', error);
-          toast({
-            title: "Error",
-            description: "Failed to initialize payment",
-            variant: "destructive",
-          });
-        });
-    }
-  }, [cartItems, paymentMethod, customerData, toast]);
+        customerData: data,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setClientSecret(data.clientSecret);
+      setCurrentStep(3);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to create payment intent. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const getCartItemsWithDetails = () => {
-    return cartItems.map(item => {
-      const artwork = artworks.find(a => a.id === item.artworkId);
-      return {
-        ...item,
-        artworkTitle: artwork?.title || 'Unknown Artwork',
-        artworkImage: artwork?.images?.[0] || '',
-        totalPrice: item.unitPrice * item.quantity
-      };
-    });
+  const onSubmit = (data: CustomerData) => {
+    setCustomerData(data);
+    createPaymentIntent.mutate(data);
   };
 
-  const getTotal = () => {
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-    const hasOriginals = cartItems.some(item => item.type === 'original');
-    const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
-    return subtotal + shippingCost;
+  const handlePaymentSuccess = (orderId: number) => {
+    setLocation(`/payment-confirmation/${orderId}`);
   };
 
-  const getSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-  };
-
-  const getShippingCost = () => {
-    const subtotal = getSubtotal();
-    const hasOriginals = cartItems.some(item => item.type === 'original');
-    return subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
-  };
-
-  const canProceedToPayment = () => {
-    return customerData.firstName && customerData.lastName && customerData.email && 
-           customerData.phone && customerData.address && customerData.city && 
-           customerData.zipCode && customerData.country;
-  };
-
-  const cartItemsWithDetails = getCartItemsWithDetails();
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
+            <Button onClick={() => setLocation('/')} className="bg-amber-600 hover:bg-amber-700">
+              Continue Shopping
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-900 text-white">
       <Header />
       
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-serif text-white text-center mb-8">Checkout</h1>
-        
-        <StepProgress currentStep={2} />
-        
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Contact Information and Shipping */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Contact Information */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-white">Contact information</h2>
-                  <Button variant="link" className="text-blue-400 p-0">Edit</Button>
-                </div>
-                <Input
-                  type="email"
-                  placeholder="Email address"
-                  value={customerData.email}
-                  onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Shipping Address */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-white">Shipping address</h2>
-                  <Button variant="link" className="text-blue-400 p-0">Edit</Button>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      placeholder="First name"
-                      value={customerData.firstName}
-                      onChange={(e) => setCustomerData({ ...customerData, firstName: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                    <Input
-                      placeholder="Last name"
-                      value={customerData.lastName}
-                      onChange={(e) => setCustomerData({ ...customerData, lastName: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-                  <Input
-                    placeholder="Address"
-                    value={customerData.address}
-                    onChange={(e) => setCustomerData({ ...customerData, address: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                  />
-                  <div className="grid grid-cols-3 gap-4">
-                    <Input
-                      placeholder="City"
-                      value={customerData.city}
-                      onChange={(e) => setCustomerData({ ...customerData, city: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                    <Input
-                      placeholder="ZIP code"
-                      value={customerData.zipCode}
-                      onChange={(e) => setCustomerData({ ...customerData, zipCode: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                    <select
-                      value={customerData.country}
-                      onChange={(e) => setCustomerData({ ...customerData, country: e.target.value })}
-                      className="bg-gray-700 border border-gray-600 text-white rounded px-3 py-2"
-                    >
-                      <option value="">Select Country</option>
-                      <option value="Canada">Canada</option>
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Australia">Australia</option>
-                      <option value="Germany">Germany</option>
-                      <option value="France">France</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <Input
-                    placeholder="Phone number"
-                    value={customerData.phone}
-                    onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Custom Instructions */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-6">
-                <h2 className="text-lg font-medium text-white mb-4">Need to leave a note or instructions?</h2>
-                <textarea
-                  placeholder="Special delivery instructions, gift message, etc."
-                  value={customInstructions}
-                  onChange={(e) => setCustomInstructions(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 min-h-[100px] rounded px-3 py-2"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Payment Information */}
-            {canProceedToPayment() && (
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-medium text-white mb-4">Payment information</h2>
-                  {paymentMethod === 'interac' ? (
-                    <InteracPaymentForm
-                      cartItems={cartItems}
-                      customerData={customerData}
-                      total={getTotal()}
-                      customInstructions={customInstructions}
-                    />
-                  ) : clientSecret ? (
-                    <Elements 
-                      stripe={stripePromise} 
-                      options={{ 
-                        clientSecret,
-                        appearance: {
-                          theme: 'night',
-                          variables: {
-                            colorPrimary: '#d4af37',
-                            colorBackground: '#374151',
-                            colorText: '#ffffff',
-                            colorDanger: '#ef4444',
-                          }
-                        }
-                      }}
-                    >
-                      <StripePaymentForm
-                        cartItems={cartItems}
-                        customerData={customerData}
-                        total={getTotal()}
-                        clientSecret={clientSecret}
-                      />
-                    </Elements>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                      <p className="text-gray-400 mt-2">Setting up payment...</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+      <div className="container mx-auto px-4 py-6">
+        {/* Progress Bar */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="flex items-center space-x-4">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              currentStep >= 1 ? 'bg-amber-600 text-white' : 'bg-gray-600 text-gray-300'
+            }`}>
+              1
+            </div>
+            <div className={`w-12 h-0.5 ${currentStep >= 2 ? 'bg-amber-600' : 'bg-gray-600'}`} />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              currentStep >= 2 ? 'bg-amber-600 text-white' : 'bg-gray-600 text-gray-300'
+            }`}>
+              2
+            </div>
+            <div className={`w-12 h-0.5 ${currentStep >= 3 ? 'bg-amber-600' : 'bg-gray-600'}`} />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              currentStep >= 3 ? 'bg-amber-600 text-white' : 'bg-gray-600 text-gray-300'
+            }`}>
+              3
+            </div>
           </div>
+        </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="bg-gray-800 border-gray-700 sticky top-8">
-              <CardContent className="p-6">
-                <h2 className="text-lg font-medium text-white mb-4">Order summary</h2>
-                
-                <div className="space-y-4 mb-6">
-                  {cartItemsWithDetails.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3">
-                      <div className="relative">
+        <div className="flex items-center justify-center text-sm text-gray-400 mb-8">
+          <span className={currentStep === 1 ? 'text-amber-400' : ''}>Cart</span>
+          <span className="mx-2">→</span>
+          <span className={currentStep === 2 ? 'text-amber-400' : ''}>Details</span>
+          <span className="mx-2">→</span>
+          <span className={currentStep === 3 ? 'text-amber-400' : ''}>Payment</span>
+        </div>
+
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2">
+              {currentStep === 1 && (
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Your Cart</h2>
+                    <Button
+                      onClick={() => setLocation('/cart')}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Edit Cart
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {cartItemsWithDetails.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-3 p-3 bg-slate-700 rounded">
                         <img
                           src={item.artworkImage}
                           alt={item.artworkTitle}
-                          className="w-16 h-16 object-cover rounded"
+                          className="w-12 h-16 object-cover rounded"
                         />
-                        <span className="absolute -top-2 -right-2 bg-gray-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {item.quantity}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.artworkTitle}</p>
+                          <p className="text-xs text-gray-400">
+                            {item.type === 'original' ? 'Original' : `Print - ${item.printSize}`}
+                          </p>
+                          <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-medium">${item.totalPrice.toFixed(2)} USD</p>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-white text-sm font-medium">{item.artworkTitle}</h3>
-                        <p className="text-gray-400 text-xs">
-                          {item.type === 'original' ? 'Original' : `Print - ${item.printSize}`}
-                        </p>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    onClick={() => setCurrentStep(2)}
+                    className="w-full mt-4 bg-amber-600 hover:bg-amber-700"
+                  >
+                    Continue to Shipping
+                  </Button>
+                </div>
+              )}
+
+              {currentStep === 2 && (
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <h2 className="text-lg font-semibold mb-4">Shipping Information</h2>
+                  
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">First Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                              </FormControl>
+                              <FormMessage className="text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Last Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                              </FormControl>
+                              <FormMessage className="text-xs" />
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                      <span className="text-white font-medium">
-                        ${item.totalPrice.toFixed(2)}
-                      </span>
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="email" className="h-9 text-sm bg-slate-700 border-slate-600" />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Phone Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Street Address</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">City</FormLabel>
+                              <FormControl>
+                                <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                              </FormControl>
+                              <FormMessage className="text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">ZIP Code</FormLabel>
+                              <FormControl>
+                                <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                              </FormControl>
+                              <FormMessage className="text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Country</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9 text-sm bg-slate-700 border-slate-600" />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Special Instructions - Collapsible */}
+                      <Collapsible open={specialNotesOpen} onOpenChange={setSpecialNotesOpen}>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full justify-between p-2 h-auto text-xs text-gray-400 hover:text-white"
+                          >
+                            Special delivery instructions (optional)
+                            {specialNotesOpen ? (
+                              <ChevronUp className="w-3 h-3" />
+                            ) : (
+                              <ChevronDown className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <FormField
+                            control={form.control}
+                            name="specialInstructions"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Textarea 
+                                    {...field} 
+                                    placeholder="Any special instructions for delivery..."
+                                    className="text-sm bg-slate-700 border-slate-600 resize-none h-20"
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      <div className="flex space-x-3 pt-2">
+                        <Button 
+                          type="button"
+                          onClick={() => setCurrentStep(1)}
+                          variant="outline"
+                          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                        >
+                          Back to Cart
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={createPaymentIntent.isPending}
+                          className="flex-1 bg-amber-600 hover:bg-amber-700"
+                        >
+                          {createPaymentIntent.isPending ? "Processing..." : "Continue to Payment"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </div>
+              )}
+
+              {currentStep === 3 && customerData && clientSecret && (
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <h2 className="text-lg font-semibold mb-4">Payment</h2>
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <CheckoutForm 
+                      clientSecret={clientSecret}
+                      customerData={customerData}
+                      onPaymentSuccess={handlePaymentSuccess}
+                    />
+                  </Elements>
+                </div>
+              )}
+            </div>
+
+            {/* Order Summary Sidebar */}
+            <div className="lg:col-span-1">
+              <div className="bg-slate-800 rounded-lg p-4 sticky top-4">
+                <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+                
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)} USD</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center">
+                      <Truck className="w-3 h-3 mr-1" />
+                      Shipping
+                    </span>
+                    <span>
+                      {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)} USD`}
+                    </span>
+                  </div>
+                  <div className="border-t border-slate-600 pt-3">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total</span>
+                      <span>${total.toFixed(2)} USD</span>
                     </div>
-                  ))}
+                  </div>
                 </div>
 
-                <div className="border-t border-gray-600 pt-4 space-y-2">
-                  <div className="flex justify-between text-gray-300">
-                    <span>Subtotal</span>
-                    <span>${getSubtotal().toFixed(2)}</span>
+                <div className="space-y-2 text-xs text-gray-400">
+                  <div className="flex items-center">
+                    <Shield className="w-3 h-3 mr-2" />
+                    <span>Secure payment with Stripe</span>
                   </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Shipping</span>
-                    <span>${getShippingCost().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Tax</span>
-                    <span>$0.00</span>
-                  </div>
-                  <div className="border-t border-gray-600 pt-2">
-                    <div className="flex justify-between text-white font-semibold text-lg">
-                      <span>Total</span>
-                      <span>${getTotal().toFixed(2)}</span>
-                    </div>
-                  </div>
+                  <p>Free shipping on orders over $100</p>
+                  <p>All prices in USD. International customers may see currency conversion differences from their bank.</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
