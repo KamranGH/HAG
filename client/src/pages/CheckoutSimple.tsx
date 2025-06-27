@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -386,9 +387,40 @@ export default function CheckoutSimple() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-xs">Country</FormLabel>
-                          <FormControl>
-                            <Input {...field} className="h-8 text-sm bg-slate-700 border-slate-600" />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-8 text-sm bg-slate-700 border-slate-600">
+                                <SelectValue placeholder="Select country" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="US">United States</SelectItem>
+                              <SelectItem value="CA">Canada</SelectItem>
+                              <SelectItem value="GB">United Kingdom</SelectItem>
+                              <SelectItem value="AU">Australia</SelectItem>
+                              <SelectItem value="DE">Germany</SelectItem>
+                              <SelectItem value="FR">France</SelectItem>
+                              <SelectItem value="ES">Spain</SelectItem>
+                              <SelectItem value="IT">Italy</SelectItem>
+                              <SelectItem value="NL">Netherlands</SelectItem>
+                              <SelectItem value="BE">Belgium</SelectItem>
+                              <SelectItem value="SE">Sweden</SelectItem>
+                              <SelectItem value="NO">Norway</SelectItem>
+                              <SelectItem value="DK">Denmark</SelectItem>
+                              <SelectItem value="FI">Finland</SelectItem>
+                              <SelectItem value="CH">Switzerland</SelectItem>
+                              <SelectItem value="AT">Austria</SelectItem>
+                              <SelectItem value="JP">Japan</SelectItem>
+                              <SelectItem value="KR">South Korea</SelectItem>
+                              <SelectItem value="SG">Singapore</SelectItem>
+                              <SelectItem value="HK">Hong Kong</SelectItem>
+                              <SelectItem value="NZ">New Zealand</SelectItem>
+                              <SelectItem value="IE">Ireland</SelectItem>
+                              <SelectItem value="PT">Portugal</SelectItem>
+                              <SelectItem value="LU">Luxembourg</SelectItem>
+                              <SelectItem value="IS">Iceland</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage className="text-xs" />
                         </FormItem>
                       )}
@@ -477,7 +509,7 @@ export default function CheckoutSimple() {
                         </p>
                         <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                       </div>
-                      <p className="text-xs font-medium">${item.totalPrice.toFixed(2)} USD</p>
+                      <p className="text-xs font-medium">${item.totalPrice.toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
@@ -485,7 +517,7 @@ export default function CheckoutSimple() {
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)} USD</span>
+                    <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="flex items-center">
@@ -493,13 +525,13 @@ export default function CheckoutSimple() {
                       Shipping
                     </span>
                     <span>
-                      {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)} USD`}
+                      {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
                     </span>
                   </div>
                   <div className="border-t border-slate-600 pt-2">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>${total.toFixed(2)} USD</span>
+                      <span>${total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

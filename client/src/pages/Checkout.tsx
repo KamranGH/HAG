@@ -347,7 +347,7 @@ const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret
         disabled={!stripe || !elements || createOrderMutation.isPending || completeOrderMutation.isPending}
         className="w-full bg-primary hover:bg-primary/90 text-white py-4 text-lg font-semibold"
       >
-        {(createOrderMutation.isPending || completeOrderMutation.isPending) ? "Processing..." : `Complete Payment - $${total.toFixed(2)} USD`}
+        {(createOrderMutation.isPending || completeOrderMutation.isPending) ? "Processing..." : `Complete Payment - $${total.toFixed(2)}`}
       </Button>
     </form>
   );
@@ -724,7 +724,7 @@ export default function Checkout() {
                     </div>
                   )}
                   <div className="flex justify-between text-xl font-semibold border-t border-navy-700 pt-2">
-                    <span className="text-white">Total (USD):</span>
+                    <span className="text-white">Total:</span>
                     <span className="text-white">${getTotal().toFixed(2)}</span>
                   </div>
                   <div className="mt-2 p-3 bg-navy-800 rounded border border-navy-600">
@@ -732,7 +732,7 @@ export default function Checkout() {
                       <div className="text-blue-400 mt-0.5">ℹ️</div>
                       <div className="text-sm text-gray-300">
                         <p className="font-medium text-white mb-1">International Payment Notice</p>
-                        <p>All prices are in USD. Your bank may convert to your local currency and apply conversion fees. The final charge on your statement may differ slightly due to exchange rates.</p>
+                        <p>All prices in USD. International customers may see currency conversion differences from their bank.</p>
                       </div>
                     </div>
                   </div>

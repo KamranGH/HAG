@@ -106,6 +106,7 @@ This is a complete, production-quality online art gallery application that preci
 - June 27, 2025. CRITICAL FIX: Resolved payment amount discrepancy bug - updated database schema to track shipping costs separately, fixed order creation to include shipping calculations, now payment amounts are consistent between checkout display, actual charges, and order receipts
 - June 27, 2025. Enhanced international customer experience - added clear USD currency labels throughout gallery, cart, checkout, and payment confirmation pages, plus prominent currency conversion notice explaining potential bank conversion differences for international customers
 - June 27, 2025. ROLLBACK: Completely removed Interac e-Transfer implementation per user request - now using Stripe-only payment system with simplified checkout layout featuring smaller components, email moved to shipping section, and collapsible special instructions field
+- June 27, 2025. Removed "USD" currency labels throughout the application (cart, artwork detail, and checkout pages) while keeping only the currency disclaimer message for international customers
 
 ## User Preferences
 
