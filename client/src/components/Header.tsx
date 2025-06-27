@@ -66,14 +66,14 @@ export default function Header({ isAdminMode = false, onToggleAdmin, showAdminBu
             </Button>
           </Link>
           
-          {showAdminButton && (
+          {isAdminMode && (
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={onToggleAdmin}
-              className={`text-gray-300 hover:text-white ${isAdminMode ? 'bg-primary text-white' : ''}`}
+              className="text-gray-300 hover:text-white bg-primary text-white"
             >
-              {isAdminMode ? 'Exit Admin' : 'Admin'}
+              Exit Admin
             </Button>
           )}
         </div>

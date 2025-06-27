@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,6 +10,33 @@ import type { Artwork } from "@shared/schema";
 export default function Gallery() {
   const { isAuthenticated } = useAuth();
   const [isAdminMode, setIsAdminMode] = useState(false);
+
+  // Check if user should be in admin mode (after login)
+  useEffect(() => {
+    if (isAuthenticated) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const adminMode = localStorage.getItem('adminMode') === 'true';
+      
+      if (urlParams.get('admin') === 'true' || adminMode) {
+        setIsAdminMode(true);
+        localStorage.setItem('adminMode', 'true');
+        // Clean up URL
+        if (urlParams.get('admin')) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    }
+  }, [isAuthenticated]);
+
+  const handleToggleAdmin = () => {
+    const newAdminMode = !isAdminMode;
+    setIsAdminMode(newAdminMode);
+    if (newAdminMode) {
+      localStorage.setItem('adminMode', 'true');
+    } else {
+      localStorage.removeItem('adminMode');
+    }
+  };
   
   const { data: artworks, isLoading, error } = useQuery<Artwork[]>({
     queryKey: ["/api/artworks"],
@@ -34,8 +61,7 @@ export default function Gallery() {
     <div className="min-h-screen bg-navy-900 text-white">
       <Header 
         isAdminMode={isAdminMode}
-        onToggleAdmin={() => setIsAdminMode(!isAdminMode)}
-        showAdminButton={isAuthenticated}
+        onToggleAdmin={handleToggleAdmin}
       />
       
       <main className="container mx-auto px-4 py-8">

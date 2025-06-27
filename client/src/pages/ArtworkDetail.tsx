@@ -5,7 +5,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Minus, Plus, ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Artwork } from "@shared/schema";
 
@@ -28,6 +29,8 @@ export default function ArtworkDetail() {
   
   const [selectedPrintOption, setSelectedPrintOption] = useState<number | null>(null);
   const [printQuantity, setPrintQuantity] = useState(1);
+  const [isImagePopupOpen, setIsImagePopupOpen] = useState(false);
+  const [imageZoom, setImageZoom] = useState(1);
   
   const { data: artwork, isLoading, error } = useQuery<Artwork>({
     queryKey: [`/api/artworks/${id}`],
@@ -162,44 +165,28 @@ export default function ArtworkDetail() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Navigation Controls */}
-        <div className="flex justify-between items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation(`/artwork/${previousArtwork?.id}`)}
-            disabled={!previousArtwork}
-            className="text-gray-300 hover:text-white disabled:opacity-50"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Previous
-          </Button>
-          
-          <div className="text-center text-gray-400 text-sm">
-            {currentIndex + 1} of {allArtworks?.length || 0}
-          </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation(`/artwork/${nextArtwork?.id}`)}
-            disabled={!nextArtwork}
-            className="text-gray-300 hover:text-white disabled:opacity-50"
-          >
-            Next
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Artwork Images */}
           <div className="space-y-4">
-            <div className="relative bg-navy-800 rounded-lg overflow-hidden">
+            <div 
+              className="relative bg-navy-800 rounded-lg overflow-hidden cursor-pointer group"
+              onClick={() => {
+                setIsImagePopupOpen(true);
+                setImageZoom(1);
+              }}
+            >
               <img 
                 src={getImageUrl(artwork.images?.[0] || '')}
                 alt={artwork.title}
-                className="w-full h-auto max-h-[80vh] object-contain"
+                className="w-full h-auto max-h-[80vh] object-contain transition-opacity group-hover:opacity-90"
               />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-navy-900 bg-opacity-80 p-2 rounded-full">
+                  <ZoomIn className="w-6 h-6 text-white" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -351,7 +338,97 @@ export default function ArtworkDetail() {
         </div>
       </main>
       
+      {/* Product Navigation */}
+      <div className="container mx-auto px-4 py-8 border-t border-navy-800">
+        <div className="flex justify-between items-center">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation(`/artwork/${previousArtwork?.id}`)}
+            disabled={!previousArtwork}
+            className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Previous Product
+          </Button>
+          
+          <Button
+            variant="ghost"
+            onClick={() => setLocation(`/artwork/${nextArtwork?.id}`)}
+            disabled={!nextArtwork}
+            className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
+          >
+            Next Product
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+      
       <Footer />
+
+      {/* Image Popup Dialog */}
+      <Dialog open={isImagePopupOpen} onOpenChange={setIsImagePopupOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] bg-black border-none p-0 overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsImagePopupOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white hover:bg-opacity-70"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            
+            {/* Zoom Controls */}
+            <div className="absolute top-4 left-4 z-10 flex space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImageZoom(Math.max(0.5, imageZoom - 0.25))}
+                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImageZoom(Math.min(3, imageZoom + 0.25))}
+                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImageZoom(1)}
+                className="bg-black bg-opacity-50 text-white hover:bg-opacity-70 text-xs px-2"
+              >
+                Reset
+              </Button>
+            </div>
+
+            {/* Image */}
+            <div 
+              className="overflow-auto max-w-full max-h-full p-4"
+              style={{ 
+                transform: `scale(${imageZoom})`,
+                transformOrigin: 'center',
+                transition: 'transform 0.2s ease-in-out'
+              }}
+            >
+              <img 
+                src={getImageUrl(artwork?.images?.[0] || '')}
+                alt={artwork?.title}
+                className="max-w-none h-auto"
+                style={{ 
+                  maxWidth: imageZoom === 1 ? '100%' : 'none',
+                  maxHeight: imageZoom === 1 ? '85vh' : 'none'
+                }}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
