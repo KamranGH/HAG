@@ -185,7 +185,7 @@ export class DatabaseStorage implements IStorage {
   async updateSocialMediaSetting(platform: string, settingData: Partial<InsertSocialMediaSetting>): Promise<SocialMediaSetting> {
     const [setting] = await db
       .update(socialMediaSettings)
-      .set({ ...settingData, updatedAt: new Date() })
+      .set(settingData)
       .where(eq(socialMediaSettings.platform, platform))
       .returning();
     return setting;
@@ -197,10 +197,7 @@ export class DatabaseStorage implements IStorage {
       .values(settingData)
       .onConflictDoUpdate({
         target: socialMediaSettings.platform,
-        set: {
-          ...settingData,
-          updatedAt: new Date(),
-        },
+        set: settingData,
       })
       .returning();
     return setting;

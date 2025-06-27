@@ -99,9 +99,9 @@ export default function Footer({
     <footer className="border-t border-navy-700 py-12 mt-16 bg-navy-900">
       <div className="container mx-auto px-4">
         {/* Newsletter Signup with Product Navigation */}
-        <div className="text-center mb-8 max-w-2xl mx-auto">
+        <div className="text-center mb-8 max-w-4xl mx-auto">
           {/* Newsletter Title with Product Navigation */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 px-8">
             {showProductNavigation ? (
               <Button
                 variant="ghost"
@@ -164,7 +164,7 @@ export default function Footer({
             <div className="flex space-x-4">
               {getSetting('instagram').isVisible && (
                 <a 
-                  href={getSetting('instagram').url} 
+                  href={getSetting('instagram').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -174,7 +174,7 @@ export default function Footer({
               )}
               {getSetting('facebook').isVisible && (
                 <a 
-                  href={getSetting('facebook').url} 
+                  href={getSetting('facebook').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -184,7 +184,7 @@ export default function Footer({
               )}
               {getSetting('x').isVisible && (
                 <a 
-                  href={getSetting('x').url} 
+                  href={getSetting('x').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -194,7 +194,7 @@ export default function Footer({
               )}
               {getSetting('etsy').isVisible && (
                 <a 
-                  href={getSetting('etsy').url} 
+                  href={getSetting('etsy').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -204,7 +204,7 @@ export default function Footer({
               )}
               {getSetting('pinterest').isVisible && (
                 <a 
-                  href={getSetting('pinterest').url} 
+                  href={getSetting('pinterest').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -214,7 +214,7 @@ export default function Footer({
               )}
               {getSetting('tiktok').isVisible && (
                 <a 
-                  href={getSetting('tiktok').url} 
+                  href={getSetting('tiktok').url || undefined} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -232,17 +232,17 @@ export default function Footer({
                     <Settings className="w-4 h-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-navy-800 border-navy-700 text-white">
+                <DialogContent className="bg-navy-800 border-navy-700 text-white max-w-md max-h-[80vh]">
                   <DialogHeader>
                     <DialogTitle>Social Media Settings</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
                     {['instagram', 'facebook', 'x', 'etsy', 'pinterest', 'tiktok'].map((platform) => (
                       <div key={platform} className="space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="capitalize font-medium">{platform === 'x' ? 'X (Twitter)' : platform}</Label>
                           <Switch
-                            checked={getSetting(platform).isVisible}
+                            checked={getSetting(platform).isVisible || false}
                             onCheckedChange={(checked) => handleSocialUpdate(platform, 'isVisible', checked)}
                           />
                         </div>
