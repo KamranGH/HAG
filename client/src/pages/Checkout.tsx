@@ -47,6 +47,51 @@ const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const createOrderMutation = useMutation({
+    mutationFn: async ({ cartItems, customerData, totalAmount, subtotalAmount, shippingAmount }: {
+      cartItems: CartItem[];
+      customerData: CustomerData;
+      totalAmount: number;
+      subtotalAmount: number;
+      shippingAmount: number;
+    }) => {
+      // First create the customer
+      const customerResponse = await apiRequest("POST", "/api/customers", {
+        email: customerData.email,
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        address: customerData.address,
+        city: customerData.city,
+        zipCode: customerData.zipCode,
+      });
+      const customer = await customerResponse.json();
+
+      // Then create the order
+      const orderResponse = await apiRequest("POST", "/api/orders", {
+        customerId: customer.id,
+        subtotalAmount,
+        shippingAmount,
+        totalAmount,
+        status: "pending",
+      });
+      const order = await orderResponse.json();
+
+      // Add order items
+      for (const item of cartItems) {
+        await apiRequest("POST", "/api/order-items", {
+          orderId: order.id,
+          artworkId: item.artworkId,
+          type: item.type,
+          printSize: item.printSize,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        });
+      }
+
+      return order;
+    },
+  });
+
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, stripePaymentIntentId }: { orderId: number; stripePaymentIntentId: string }) => {
       return await apiRequest("POST", `/api/orders/${orderId}/complete`, { stripePaymentIntentId });
@@ -109,11 +154,31 @@ const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret
           variant: "destructive",
         });
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        // Find order ID from metadata or create order here
-        const orderId = 1; // This would come from the order creation response
-        completeOrderMutation.mutate({
-          orderId,
-          stripePaymentIntentId: paymentIntent.id,
+        // Create order first, then complete it
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+        const hasOriginals = cartItems.some(item => item.type === 'original');
+        const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
+        
+        createOrderMutation.mutate({
+          cartItems,
+          customerData,
+          totalAmount: total,
+          subtotalAmount: subtotal,
+          shippingAmount: shippingCost,
+        }, {
+          onSuccess: (order) => {
+            completeOrderMutation.mutate({
+              orderId: order.id,
+              stripePaymentIntentId: paymentIntent.id,
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Order Creation Failed",
+              description: error.message || "There was an error creating your order",
+              variant: "destructive",
+            });
+          },
         });
       }
     } catch (error: any) {
@@ -130,10 +195,10 @@ const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret
       <PaymentElement />
       <Button 
         type="submit" 
-        disabled={!stripe || completeOrderMutation.isPending}
+        disabled={!stripe || !elements || createOrderMutation.isPending || completeOrderMutation.isPending}
         className="w-full bg-primary hover:bg-primary/90 text-white py-4 text-lg font-semibold"
       >
-        {completeOrderMutation.isPending ? "Processing..." : `Complete Payment - $${total.toFixed(2)} USD`}
+        {(createOrderMutation.isPending || completeOrderMutation.isPending) ? "Processing..." : `Complete Payment - $${total.toFixed(2)} USD`}
       </Button>
     </form>
   );
