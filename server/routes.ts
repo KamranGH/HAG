@@ -251,11 +251,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { platform } = req.params;
       const settingData = req.body;
-      const setting = await storage.createOrUpdateSocialMediaSetting({
-        platform,
-        ...settingData,
-      });
-      res.json(setting);
+      
+      // Try to update first, then create if doesn't exist
+      try {
+        const setting = await storage.updateSocialMediaSetting(platform, settingData);
+        res.json(setting);
+      } catch (updateError) {
+        // If update fails, create new setting
+        const setting = await storage.createOrUpdateSocialMediaSetting({
+          platform,
+          ...settingData,
+        });
+        res.json(setting);
+      }
     } catch (error: any) {
       console.error("Error updating social media setting:", error);
       res.status(500).json({ message: "Failed to update social media setting" });

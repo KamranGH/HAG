@@ -192,12 +192,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrUpdateSocialMediaSetting(settingData: InsertSocialMediaSetting): Promise<SocialMediaSetting> {
+    const { platform, url, isVisible } = settingData;
     const [setting] = await db
       .insert(socialMediaSettings)
-      .values(settingData)
+      .values({ platform, url, isVisible })
       .onConflictDoUpdate({
         target: socialMediaSettings.platform,
-        set: settingData,
+        set: { url, isVisible }, // Only update the fields we want, not timestamps
       })
       .returning();
     return setting;
