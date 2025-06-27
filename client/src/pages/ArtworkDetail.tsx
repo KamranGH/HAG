@@ -10,16 +10,14 @@ import { Minus, Plus, ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "luci
 import { useToast } from "@/hooks/use-toast";
 import type { Artwork } from "@shared/schema";
 
+// Optimized cart item structure to reduce localStorage usage
 interface CartItem {
   id: string;
   artworkId: number;
-  artworkTitle: string;
-  artworkImage: string;
   type: 'original' | 'print';
   printSize?: string;
   quantity: number;
   unitPrice: number;
-  totalPrice: number;
 }
 
 export default function ArtworkDetail() {
@@ -64,8 +62,6 @@ export default function ArtworkDetail() {
     if (existingItemIndex >= 0) {
       // Update quantity if item exists
       existingCart[existingItemIndex].quantity += item.quantity;
-      existingCart[existingItemIndex].totalPrice = 
-        existingCart[existingItemIndex].quantity * existingCart[existingItemIndex].unitPrice;
     } else {
       // Add new item
       existingCart.push(item);
@@ -75,23 +71,23 @@ export default function ArtworkDetail() {
       localStorage.setItem('cart', JSON.stringify(existingCart));
       toast({
         title: "Added to Cart",
-        description: `${item.artworkTitle} has been added to your cart.`,
+        description: `Item has been added to your cart.`,
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        // Clear cart and try to add just this item
-        localStorage.removeItem('cart');
+        // Clear all localStorage and try again
+        localStorage.clear();
         try {
           localStorage.setItem('cart', JSON.stringify([item]));
           toast({
-            title: "Cart Cleared and Item Added",
-            description: "Your cart was full, so we cleared it and added this item.",
+            title: "Storage Cleared and Item Added",
+            description: "Browser storage was full. We cleared it and added your item.",
             variant: "destructive",
           });
         } catch {
           toast({
             title: "Unable to Add to Cart",
-            description: "Storage is full. Please clear your browser data.",
+            description: "Please close some browser tabs and try again.",
             variant: "destructive",
           });
         }
@@ -111,12 +107,9 @@ export default function ArtworkDetail() {
     const item: CartItem = {
       id: `${artwork.id}-original`,
       artworkId: artwork.id,
-      artworkTitle: artwork.title,
-      artworkImage: artwork.images?.[0] || '',
       type: 'original',
       quantity: 1,
       unitPrice: parseFloat(artwork.originalPrice || '0'),
-      totalPrice: parseFloat(artwork.originalPrice || '0'),
     };
     
     addToCart(item);
@@ -129,13 +122,10 @@ export default function ArtworkDetail() {
     const item: CartItem = {
       id: `${artwork.id}-print-${selectedPrintOption}`,
       artworkId: artwork.id,
-      artworkTitle: artwork.title,
-      artworkImage: artwork.images?.[0] || '',
       type: 'print',
       printSize: printOption.size,
       quantity: printQuantity,
       unitPrice: printOption.price,
-      totalPrice: printOption.price * printQuantity,
     };
     
     addToCart(item);

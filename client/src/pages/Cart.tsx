@@ -1,31 +1,61 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Minus, Plus, Trash2 } from "lucide-react";
+import type { Artwork } from "@shared/schema";
 
+// Optimized cart item structure
 interface CartItem {
   id: string;
   artworkId: number;
-  artworkTitle: string;
-  artworkImage: string;
   type: 'original' | 'print';
   printSize?: string;
   quantity: number;
   unitPrice: number;
+}
+
+// Enhanced cart item with artwork details for display
+interface CartItemWithDetails extends CartItem {
+  artworkTitle: string;
+  artworkImage: string;
   totalPrice: number;
 }
 
 export default function Cart() {
   const [, setLocation] = useLocation();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItemsWithDetails, setCartItemsWithDetails] = useState<CartItemWithDetails[]>([]);
+
+  const { data: artworks = [] } = useQuery<Artwork[]>({
+    queryKey: ['/api/artworks'],
+  });
 
   useEffect(() => {
     const items: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
     setCartItems(items);
   }, []);
+
+  // Convert cart items to items with details
+  useEffect(() => {
+    if (cartItems.length > 0 && artworks.length > 0) {
+      const itemsWithDetails = cartItems.map(item => {
+        const artwork = artworks.find(a => a.id === item.artworkId);
+        return {
+          ...item,
+          artworkTitle: artwork?.title || 'Unknown Artwork',
+          artworkImage: artwork?.images?.[0] || '',
+          totalPrice: item.unitPrice * item.quantity,
+        };
+      });
+      setCartItemsWithDetails(itemsWithDetails);
+    } else {
+      setCartItemsWithDetails([]);
+    }
+  }, [cartItems, artworks]);
 
   const updateCart = (items: CartItem[]) => {
     setCartItems(items);
@@ -33,9 +63,14 @@ export default function Cart() {
       localStorage.setItem('cart', JSON.stringify(items));
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        // Clear cart and reload page to reset state
-        localStorage.removeItem('cart');
-        window.location.reload();
+        // Clear all localStorage and try again
+        localStorage.clear();
+        try {
+          localStorage.setItem('cart', JSON.stringify(items));
+        } catch {
+          // If still failing, just clear the cart
+          setCartItems([]);
+        }
       }
     }
   };
@@ -48,7 +83,6 @@ export default function Cart() {
         return {
           ...item,
           quantity: newQuantity,
-          totalPrice: item.unitPrice * newQuantity
         };
       }
       return item;
@@ -63,7 +97,7 @@ export default function Cart() {
   };
 
   const getSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    return cartItemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
   };
 
   const getImageUrl = (url: string) => {
@@ -108,7 +142,7 @@ export default function Cart() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-6">
-            {cartItems.map((item) => (
+            {cartItemsWithDetails.map((item) => (
               <Card key={item.id} className="bg-navy-800 border-navy-700">
                 <CardContent className="p-6">
                   <div className="flex gap-4">
