@@ -31,6 +31,9 @@ export default function ArtworkDetail() {
   const [printQuantity, setPrintQuantity] = useState(1);
   const [isImagePopupOpen, setIsImagePopupOpen] = useState(false);
   const [imageZoom, setImageZoom] = useState(1);
+  const [imageDrag, setImageDrag] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   const { data: artwork, isLoading, error } = useQuery<Artwork>({
     queryKey: [`/api/artworks/${id}`],
@@ -147,8 +150,7 @@ export default function ArtworkDetail() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h2 className="text-2xl font-serif mb-4">Artwork Not Found</h2>
-            <p className="text-gray-300 mb-6">The artwork you're looking for doesn't exist.</p>
-            <Button onClick={() => setLocation('/')}>Return to Gallery</Button>
+            <p className="text-gray-300">The artwork you're looking for doesn't exist.</p>
           </div>
         </div>
         <Footer />
@@ -175,6 +177,7 @@ export default function ArtworkDetail() {
               onClick={() => {
                 setIsImagePopupOpen(true);
                 setImageZoom(1);
+                setImageDrag({ x: 0, y: 0 });
               }}
             >
               <img 
@@ -384,7 +387,10 @@ export default function ArtworkDetail() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setImageZoom(Math.max(0.5, imageZoom - 0.25))}
+                onClick={() => {
+                  setImageZoom(Math.max(0.5, imageZoom - 0.25));
+                  setImageDrag({ x: 0, y: 0 });
+                }}
                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -392,7 +398,10 @@ export default function ArtworkDetail() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setImageZoom(Math.min(3, imageZoom + 0.25))}
+                onClick={() => {
+                  setImageZoom(Math.min(3, imageZoom + 0.25));
+                  setImageDrag({ x: 0, y: 0 });
+                }}
                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-70"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -400,7 +409,10 @@ export default function ArtworkDetail() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setImageZoom(1)}
+                onClick={() => {
+                  setImageZoom(1);
+                  setImageDrag({ x: 0, y: 0 });
+                }}
                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-70 text-xs px-2"
               >
                 Reset
@@ -409,21 +421,44 @@ export default function ArtworkDetail() {
 
             {/* Image */}
             <div 
-              className="overflow-auto max-w-full max-h-full p-4"
+              className="overflow-hidden max-w-full max-h-full p-4"
               style={{ 
-                transform: `scale(${imageZoom})`,
-                transformOrigin: 'center',
-                transition: 'transform 0.2s ease-in-out'
+                cursor: imageZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+              }}
+              onMouseDown={(e) => {
+                if (imageZoom > 1) {
+                  setIsDragging(true);
+                  setDragStart({ x: e.clientX - imageDrag.x, y: e.clientY - imageDrag.y });
+                  e.preventDefault();
+                }
+              }}
+              onMouseMove={(e) => {
+                if (isDragging && imageZoom > 1) {
+                  setImageDrag({
+                    x: e.clientX - dragStart.x,
+                    y: e.clientY - dragStart.y
+                  });
+                }
+              }}
+              onMouseUp={() => {
+                setIsDragging(false);
+              }}
+              onMouseLeave={() => {
+                setIsDragging(false);
               }}
             >
               <img 
                 src={getImageUrl(artwork?.images?.[0] || '')}
                 alt={artwork?.title}
-                className="max-w-none h-auto"
+                className="max-w-none h-auto select-none"
                 style={{ 
+                  transform: `scale(${imageZoom}) translate(${imageDrag.x}px, ${imageDrag.y}px)`,
+                  transformOrigin: 'center',
+                  transition: isDragging ? 'none' : 'transform 0.2s ease-in-out',
                   maxWidth: imageZoom === 1 ? '100%' : 'none',
                   maxHeight: imageZoom === 1 ? '85vh' : 'none'
                 }}
+                draggable={false}
               />
             </div>
           </div>

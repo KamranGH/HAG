@@ -43,7 +43,7 @@ export default function Header({ isAdminMode = false, onToggleAdmin, showAdminBu
         </div>
         
         <Link href="/">
-          <h1 className="gallery-logo text-2xl md:text-3xl font-semibold tracking-wide text-white hover:text-primary transition-colors cursor-pointer">
+          <h1 className="gallery-logo text-2xl md:text-3xl font-semibold tracking-wide text-white hover:text-gray-300 transition-colors cursor-pointer">
             Hana's Art Gallery
           </h1>
         </Link>

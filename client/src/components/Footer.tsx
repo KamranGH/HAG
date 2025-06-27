@@ -1,4 +1,5 @@
-import { Instagram, Facebook, X } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
+import { FaXTwitter } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -144,7 +145,7 @@ export default function Footer({ isAdminMode = false }: FooterProps) {
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <FaXTwitter className="w-5 h-5" />
                 </a>
               )}
             </div>
