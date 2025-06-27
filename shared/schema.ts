@@ -61,6 +61,7 @@ export const customers = pgTable("customers", {
   email: varchar("email", { length: 255 }).notNull(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
+  phone: varchar("phone", { length: 20 }),
   address: text("address"),
   city: varchar("city", { length: 100 }),
   zipCode: varchar("zip_code", { length: 20 }),
