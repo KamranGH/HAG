@@ -104,6 +104,7 @@ This is a complete, production-quality online art gallery application that preci
 - June 26, 2025. Enhanced admin panel with full artwork management - editing, deleting, and reordering capabilities
 - June 26, 2025. Fixed image upload system to use actual uploaded files instead of placeholders, increased server request limit to 50MB
 - June 27, 2025. CRITICAL FIX: Resolved payment amount discrepancy bug - updated database schema to track shipping costs separately, fixed order creation to include shipping calculations, now payment amounts are consistent between checkout display, actual charges, and order receipts
+- June 27, 2025. Enhanced international customer experience - added clear USD currency labels throughout gallery, cart, checkout, and payment confirmation pages, plus prominent currency conversion notice explaining potential bank conversion differences for international customers
 
 ## User Preferences
 

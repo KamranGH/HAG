@@ -249,7 +249,7 @@ export default function ArtworkDetail() {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-serif font-medium text-white">Original Artwork</h3>
                       <div className="text-2xl font-semibold text-white">
-                        ${artwork.originalPrice}
+                        ${artwork.originalPrice} USD
                         {artwork.originalSold && <span className="text-red-400 text-sm ml-2">(SOLD)</span>}
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export default function ArtworkDetail() {
                           <div>
                             <div className="font-medium text-white">Print - {option.size}</div>
                           </div>
-                          <div className="font-semibold text-white">${option.price}</div>
+                          <div className="font-semibold text-white">${option.price} USD</div>
                         </div>
                       ))}
                     </div>

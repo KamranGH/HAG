@@ -21,9 +21,9 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
     const maxPrice = Math.max(...prices);
     
     if (minPrice === maxPrice) {
-      return `$${minPrice}`;
+      return `$${minPrice} USD`;
     }
-    return `$${minPrice} - $${maxPrice}`;
+    return `$${minPrice} - $${maxPrice} USD`;
   };
 
   return (

@@ -162,7 +162,7 @@ export default function Cart() {
                         {item.type === 'original' ? 'Original Artwork' : `Print - ${item.printSize}`}
                       </p>
                       <p className="text-gray-300 text-sm mb-4">
-                        ${item.unitPrice} each
+                        ${item.unitPrice} USD each
                       </p>
                       
                       <div className="flex items-center justify-between">
@@ -220,7 +220,7 @@ export default function Cart() {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-lg">
                     <span className="text-gray-300">Subtotal:</span>
-                    <span className="text-white">${getSubtotal().toFixed(2)}</span>
+                    <span className="text-white">${getSubtotal().toFixed(2)} USD</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-300">
                     <span>Shipping:</span>
@@ -229,7 +229,7 @@ export default function Cart() {
                   <div className="border-t border-navy-700 pt-3">
                     <div className="flex justify-between text-xl font-semibold">
                       <span className="text-white">Total:</span>
-                      <span className="text-white">${getSubtotal().toFixed(2)}</span>
+                      <span className="text-white">${getSubtotal().toFixed(2)} USD</span>
                     </div>
                   </div>
                 </div>
