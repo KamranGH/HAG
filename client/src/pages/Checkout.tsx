@@ -36,10 +36,10 @@ interface CustomerData {
   zipCode: string;
 }
 
-const CheckoutForm = ({ cartItems, customerData, subtotal }: { 
+const CheckoutForm = ({ cartItems, customerData, total }: { 
   cartItems: CartItem[]; 
   customerData: CustomerData;
-  subtotal: number;
+  total: number;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -100,7 +100,7 @@ const CheckoutForm = ({ cartItems, customerData, subtotal }: {
         disabled={!stripe || completeOrderMutation.isPending}
         className="w-full bg-primary hover:bg-primary/90 text-white py-4 text-lg font-semibold"
       >
-        {completeOrderMutation.isPending ? "Processing..." : `Complete Payment - $${subtotal.toFixed(2)}`}
+        {completeOrderMutation.isPending ? "Processing..." : `Complete Payment - $${total.toFixed(2)}`}
       </Button>
     </form>
   );
@@ -155,10 +155,14 @@ export default function Checkout() {
     }
     setCartItems(items);
 
-    // Create payment intent
+    // Calculate total including shipping
     const subtotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    const hasOriginals = items.some(item => item.type === 'original');
+    const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
+    const total = subtotal + shippingCost;
+    
     apiRequest("POST", "/api/create-payment-intent", { 
-      amount: subtotal,
+      amount: total,
       metadata: {
         cart_items: JSON.stringify(items.map(item => ({
           artworkId: item.artworkId,
@@ -183,6 +187,24 @@ export default function Checkout() {
       return cartItemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
     }
     return cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  };
+
+  const getShippingCost = () => {
+    const subtotal = getSubtotal();
+    const hasOriginals = cartItems.some(item => item.type === 'original');
+    
+    // Free shipping for orders over $100
+    if (subtotal >= 100) return 0;
+    
+    // Higher shipping for originals due to special handling
+    if (hasOriginals) return 25;
+    
+    // Standard shipping for prints only
+    return 15;
+  };
+
+  const getTotal = () => {
+    return getSubtotal() + getShippingCost();
   };
 
   const getImageUrl = (url: string) => {
@@ -323,7 +345,7 @@ export default function Checkout() {
                   <CheckoutForm 
                     cartItems={cartItems} 
                     customerData={customerData}
-                    subtotal={getSubtotal()}
+                    total={getTotal()}
                   />
                 </Elements>
               </CardContent>
@@ -369,12 +391,27 @@ export default function Checkout() {
                     <span className="text-white">${getSubtotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Shipping:</span>
-                    <span className="text-white">$15.00</span>
+                    <span className="text-gray-300">
+                      Shipping:
+                      {getShippingCost() === 0 && (
+                        <span className="text-green-400 text-xs ml-1">(Free over $100)</span>
+                      )}
+                    </span>
+                    <span className="text-white">
+                      {getShippingCost() === 0 ? 'FREE' : `$${getShippingCost().toFixed(2)}`}
+                    </span>
                   </div>
+                  {getSubtotal() < 100 && (
+                    <div className="text-xs text-gray-400">
+                      {getSubtotal() >= 75 ? 
+                        `Add $${(100 - getSubtotal()).toFixed(2)} more for free shipping!` :
+                        'Free shipping on orders over $100'
+                      }
+                    </div>
+                  )}
                   <div className="flex justify-between text-xl font-semibold border-t border-navy-700 pt-2">
                     <span className="text-white">Total:</span>
-                    <span className="text-white">${(getSubtotal() + 15).toFixed(2)}</span>
+                    <span className="text-white">${getTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>
