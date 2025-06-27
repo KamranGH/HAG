@@ -11,21 +11,29 @@ export default function PaymentConfirmation() {
   const { orderId } = useParams();
   const [, setLocation] = useLocation();
 
-  // In a real app, you would fetch the order details here
-  // const { data: order } = useQuery({
-  //   queryKey: [`/api/orders/${orderId}`],
-  // });
+  const { data: order, isLoading } = useQuery({
+    queryKey: [`/api/orders/${orderId}`],
+    enabled: !!orderId,
+  });
 
-  // For now, we'll use mock data
-  const order = {
-    id: orderId,
-    total: 165.00,
-    date: new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    }),
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-navy-900 text-white flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-navy-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-serif mb-4">Order Not Found</h1>
+          <Button onClick={() => setLocation('/')}>Return to Gallery</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-navy-900 text-white">
@@ -49,12 +57,39 @@ export default function PaymentConfirmation() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-300">Payment Date:</span>
-                  <span className="text-white">{order.date}</span>
+                  <span className="text-white">
+                    {new Date(order.createdAt || order.date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Total Amount:</span>
-                  <span className="text-xl font-semibold text-white">${order.total.toFixed(2)}</span>
-                </div>
+                {order.subtotalAmount && order.shippingAmount !== undefined ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Subtotal:</span>
+                      <span className="text-white">${parseFloat(order.subtotalAmount).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Shipping:</span>
+                      <span className="text-white">
+                        {parseFloat(order.shippingAmount) === 0 ? 'FREE' : `$${parseFloat(order.shippingAmount).toFixed(2)}`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xl font-semibold border-t border-navy-700 pt-3">
+                      <span className="text-white">Total Amount:</span>
+                      <span className="text-white">${parseFloat(order.totalAmount).toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Total Amount:</span>
+                    <span className="text-xl font-semibold text-white">
+                      ${parseFloat(order.totalAmount || order.total).toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

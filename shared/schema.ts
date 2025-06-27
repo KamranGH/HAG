@@ -73,6 +73,8 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => customers.id).notNull(),
   stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  subtotalAmount: decimal("subtotal_amount", { precision: 10, scale: 2 }).notNull(),
+  shippingAmount: decimal("shipping_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("usd"),
   status: varchar("status", { length: 50 }).default("pending"),

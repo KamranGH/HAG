@@ -159,15 +159,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customer = await storage.createCustomer(customerData);
       }
 
-      // Calculate total
-      let totalAmount = 0;
+      // Calculate subtotal
+      let subtotal = 0;
       for (const item of items) {
-        totalAmount += item.unitPrice * item.quantity;
+        subtotal += item.unitPrice * item.quantity;
       }
+
+      // Calculate shipping (same logic as frontend)
+      const hasOriginals = items.some((item: any) => item.type === 'original');
+      const shippingCost = subtotal >= 100 ? 0 : (hasOriginals ? 25 : 15);
+      const totalAmount = subtotal + shippingCost;
 
       // Create order
       const order = await storage.createOrder({
         customerId: customer.id,
+        subtotalAmount: subtotal.toString(),
+        shippingAmount: shippingCost.toString(),
         totalAmount: totalAmount.toString(),
         status: "pending",
       });
