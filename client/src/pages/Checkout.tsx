@@ -36,10 +36,11 @@ interface CustomerData {
   zipCode: string;
 }
 
-const CheckoutForm = ({ cartItems, customerData, total }: { 
+const CheckoutFormWithElements = ({ cartItems, customerData, total, clientSecret }: { 
   cartItems: CartItem[]; 
   customerData: CustomerData;
   total: number;
+  clientSecret: string;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -71,23 +72,55 @@ const CheckoutForm = ({ cartItems, customerData, total }: {
       return;
     }
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
-
-    if (error) {
+    // Validate required billing information
+    if (!customerData.firstName || !customerData.lastName || !customerData.email || 
+        !customerData.address || !customerData.city || !customerData.zipCode) {
       toast({
-        title: "Payment Failed",
-        description: error.message,
+        title: "Missing Information",
+        description: "Please fill in all billing information fields",
         variant: "destructive",
       });
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      // Find order ID from metadata or create order here
-      const orderId = 1; // This would come from the order creation response
-      completeOrderMutation.mutate({
-        orderId,
-        stripePaymentIntentId: paymentIntent.id,
+      return;
+    }
+
+    try {
+      // Extract payment intent ID from client secret 
+      // Client secret format: "pi_xxx_secret_yyy", we need the "pi_xxx" part
+      const paymentIntentId = clientSecret?.split('_secret_')[0];
+
+      if (paymentIntentId) {
+        // Update the payment intent with shipping information
+        await apiRequest("POST", "/api/update-payment-intent", {
+          paymentIntentId,
+          shipping: customerData,
+        });
+      }
+
+      // Now confirm the payment
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+      });
+
+      if (error) {
+        toast({
+          title: "Payment Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        // Find order ID from metadata or create order here
+        const orderId = 1; // This would come from the order creation response
+        completeOrderMutation.mutate({
+          orderId,
+          stripePaymentIntentId: paymentIntent.id,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "There was an error processing your payment",
+        variant: "destructive",
       });
     }
   };
@@ -342,10 +375,11 @@ export default function Checkout() {
                     }
                   }}
                 >
-                  <CheckoutForm 
+                  <CheckoutFormWithElements 
                     cartItems={cartItems} 
                     customerData={customerData}
                     total={getTotal()}
+                    clientSecret={clientSecret}
                   />
                 </Elements>
               </CardContent>

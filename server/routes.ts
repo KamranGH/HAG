@@ -126,25 +126,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe payment route for one-time payments
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      const { amount, currency = "usd", metadata = {} } = req.body;
+      const { amount, currency = "usd", metadata = {}, shipping = null } = req.body;
       
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
       }
 
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntentData: any = {
         amount: Math.round(amount * 100), // Convert to cents
         currency,
         metadata,
         automatic_payment_methods: {
           enabled: true,
         },
-      });
+      };
+
+      // Add shipping information if provided
+      if (shipping) {
+        paymentIntentData.shipping = shipping;
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
 
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Update payment intent with shipping information
+  app.post("/api/update-payment-intent", async (req, res) => {
+    try {
+      const { paymentIntentId, shipping } = req.body;
+      
+      if (!paymentIntentId || !shipping) {
+        return res.status(400).json({ message: "Payment intent ID and shipping information required" });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.update(paymentIntentId, {
+        shipping: {
+          name: `${shipping.firstName} ${shipping.lastName}`,
+          address: {
+            line1: shipping.address,
+            city: shipping.city,
+            postal_code: shipping.zipCode,
+            country: 'US', // You can make this dynamic based on user input
+          },
+        },
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating payment intent:", error);
+      res.status(500).json({ message: "Error updating payment intent: " + error.message });
     }
   });
 
