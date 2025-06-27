@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Artwork } from "@shared/schema";
 
@@ -32,6 +32,16 @@ export default function ArtworkDetail() {
   const { data: artwork, isLoading, error } = useQuery<Artwork>({
     queryKey: [`/api/artworks/${id}`],
   });
+
+  // Fetch all artworks for navigation
+  const { data: allArtworks } = useQuery<Artwork[]>({
+    queryKey: ['/api/artworks'],
+  });
+
+  // Find current artwork index and navigation
+  const currentIndex = allArtworks?.findIndex(art => art.id === parseInt(id || '0')) ?? -1;
+  const previousArtwork = currentIndex > 0 ? allArtworks?.[currentIndex - 1] : null;
+  const nextArtwork = currentIndex >= 0 && allArtworks && currentIndex < allArtworks.length - 1 ? allArtworks[currentIndex + 1] : null;
 
   const addToCart = (item: CartItem) => {
     const existingCart: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -152,14 +162,43 @@ export default function ArtworkDetail() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
+        {/* Navigation Controls */}
+        <div className="flex justify-between items-center mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation(`/artwork/${previousArtwork?.id}`)}
+            disabled={!previousArtwork}
+            className="text-gray-300 hover:text-white disabled:opacity-50"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
+          
+          <div className="text-center text-gray-400 text-sm">
+            {currentIndex + 1} of {allArtworks?.length || 0}
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation(`/artwork/${nextArtwork?.id}`)}
+            disabled={!nextArtwork}
+            className="text-gray-300 hover:text-white disabled:opacity-50"
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Artwork Images */}
           <div className="space-y-4">
-            <div className="relative aspect-[3/4] bg-navy-800 rounded-lg overflow-hidden">
+            <div className="relative bg-navy-800 rounded-lg overflow-hidden">
               <img 
                 src={getImageUrl(artwork.images?.[0] || '')}
                 alt={artwork.title}
-                className="w-full h-full object-cover"
+                className="w-full h-auto max-h-[80vh] object-contain"
               />
             </div>
           </div>

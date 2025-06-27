@@ -10,7 +10,11 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "react-be
 import AddArtworkModal from "./AddArtworkModal";
 import type { Artwork } from "@shared/schema";
 
-export default function AdminPanel() {
+interface AdminPanelProps {
+  onExitAdmin: () => void;
+}
+
+export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
   const [artworkList, setArtworkList] = useState<Artwork[]>([]);

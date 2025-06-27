@@ -5,6 +5,7 @@ import {
   orders,
   orderItems,
   contactMessages,
+  socialMediaSettings,
   type User,
   type UpsertUser,
   type Artwork,
@@ -17,6 +18,8 @@ import {
   type InsertOrderItem,
   type ContactMessage,
   type InsertContactMessage,
+  type SocialMediaSetting,
+  type InsertSocialMediaSetting,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -47,6 +50,11 @@ export interface IStorage {
 
   // Contact operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+
+  // Social media operations
+  getSocialMediaSettings(): Promise<SocialMediaSetting[]>;
+  updateSocialMediaSetting(platform: string, setting: Partial<InsertSocialMediaSetting>): Promise<SocialMediaSetting>;
+  createOrUpdateSocialMediaSetting(setting: InsertSocialMediaSetting): Promise<SocialMediaSetting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -167,6 +175,35 @@ export class DatabaseStorage implements IStorage {
   async createContactMessage(messageData: InsertContactMessage): Promise<ContactMessage> {
     const [message] = await db.insert(contactMessages).values(messageData).returning();
     return message;
+  }
+
+  // Social media operations
+  async getSocialMediaSettings(): Promise<SocialMediaSetting[]> {
+    return await db.select().from(socialMediaSettings);
+  }
+
+  async updateSocialMediaSetting(platform: string, settingData: Partial<InsertSocialMediaSetting>): Promise<SocialMediaSetting> {
+    const [setting] = await db
+      .update(socialMediaSettings)
+      .set({ ...settingData, updatedAt: new Date() })
+      .where(eq(socialMediaSettings.platform, platform))
+      .returning();
+    return setting;
+  }
+
+  async createOrUpdateSocialMediaSetting(settingData: InsertSocialMediaSetting): Promise<SocialMediaSetting> {
+    const [setting] = await db
+      .insert(socialMediaSettings)
+      .values(settingData)
+      .onConflictDoUpdate({
+        target: socialMediaSettings.platform,
+        set: {
+          ...settingData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return setting;
   }
 }
 

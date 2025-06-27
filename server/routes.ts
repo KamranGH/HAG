@@ -221,6 +221,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact form submission
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const messageData = insertContactMessageSchema.parse(req.body);
+      const message = await storage.createContactMessage(messageData);
+      res.json(message);
+    } catch (error: any) {
+      console.error("Error creating contact message:", error);
+      res.status(500).json({ 
+        message: "Failed to send message",
+        error: error.message 
+      });
+    }
+  });
+
+  // Social media settings routes
+  app.get("/api/social-media", async (req, res) => {
+    try {
+      const settings = await storage.getSocialMediaSettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching social media settings:", error);
+      res.status(500).json({ message: "Failed to fetch social media settings" });
+    }
+  });
+
+  app.put("/api/social-media/:platform", isAuthenticated, async (req, res) => {
+    try {
+      const { platform } = req.params;
+      const settingData = req.body;
+      const setting = await storage.createOrUpdateSocialMediaSetting({
+        platform,
+        ...settingData,
+      });
+      res.json(setting);
+    } catch (error: any) {
+      console.error("Error updating social media setting:", error);
+      res.status(500).json({ message: "Failed to update social media setting" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

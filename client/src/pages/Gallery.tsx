@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,6 +9,7 @@ import type { Artwork } from "@shared/schema";
 
 export default function Gallery() {
   const { isAuthenticated } = useAuth();
+  const [isAdminMode, setIsAdminMode] = useState(false);
   
   const { data: artworks, isLoading, error } = useQuery<Artwork[]>({
     queryKey: ["/api/artworks"],
@@ -23,17 +25,23 @@ export default function Gallery() {
             <p className="text-gray-300">Unable to load artworks. Please try again later.</p>
           </div>
         </div>
-        <Footer />
+        <Footer isAdminMode={isAdminMode} />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-navy-900 text-white">
-      <Header />
+      <Header 
+        isAdminMode={isAdminMode}
+        onToggleAdmin={() => setIsAdminMode(!isAdminMode)}
+        showAdminButton={isAuthenticated}
+      />
       
       <main className="container mx-auto px-4 py-8">
-        {isAuthenticated && <AdminPanel />}
+        {isAuthenticated && isAdminMode && (
+          <AdminPanel onExitAdmin={() => setIsAdminMode(false)} />
+        )}
         
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -67,7 +75,7 @@ export default function Gallery() {
         )}
       </main>
       
-      <Footer />
+      <Footer isAdminMode={isAdminMode} />
     </div>
   );
 }

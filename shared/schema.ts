@@ -102,6 +102,15 @@ export const contactMessages = pgTable("contact_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Social media settings table
+export const socialMediaSettings = pgTable("social_media_settings", {
+  id: serial("id").primaryKey(),
+  platform: varchar("platform", { length: 50 }).notNull().unique(), // 'instagram', 'facebook', 'x'
+  url: varchar("url", { length: 500 }),
+  isVisible: boolean("is_visible").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   customers: many(customers),
@@ -162,6 +171,9 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertContactMessage = typeof contactMessages.$inferInsert;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 
+export type InsertSocialMediaSetting = typeof socialMediaSettings.$inferInsert;
+export type SocialMediaSetting = typeof socialMediaSettings.$inferSelect;
+
 // Schemas for validation
 export const insertArtworkSchema = createInsertSchema(artworks).omit({
   id: true,
@@ -187,4 +199,9 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertSocialMediaSettingSchema = createInsertSchema(socialMediaSettings).omit({
+  id: true,
+  updatedAt: true,
 });

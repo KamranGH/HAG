@@ -11,7 +11,13 @@ interface CartItem {
   quantity: number;
 }
 
-export default function Header() {
+interface HeaderProps {
+  isAdminMode?: boolean;
+  onToggleAdmin?: () => void;
+  showAdminButton?: boolean;
+}
+
+export default function Header({ isAdminMode = false, onToggleAdmin, showAdminButton = false }: HeaderProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
   
@@ -60,9 +66,14 @@ export default function Header() {
             </Button>
           </Link>
           
-          {isAuthenticated && (
-            <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
-              Admin
+          {showAdminButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onToggleAdmin}
+              className={`text-gray-300 hover:text-white ${isAdminMode ? 'bg-primary text-white' : ''}`}
+            >
+              {isAdminMode ? 'Exit Admin' : 'Admin'}
             </Button>
           )}
         </div>

@@ -1,12 +1,73 @@
-import { Instagram, Facebook, Twitter } from "lucide-react";
+import { Instagram, Facebook, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Settings } from "lucide-react";
+import type { SocialMediaSetting } from "@shared/schema";
 
-export default function Footer() {
+interface FooterProps {
+  isAdminMode?: boolean;
+}
+
+export default function Footer({ isAdminMode = false }: FooterProps) {
   const [email, setEmail] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { toast } = useToast();
+
+  // Social media settings
+  const { data: socialSettings } = useQuery<SocialMediaSetting[]>({
+    queryKey: ['/api/social-media'],
+  });
+
+  // Create a map for easy access with defaults
+  const socialMap = socialSettings?.reduce((acc, setting) => {
+    acc[setting.platform] = setting;
+    return acc;
+  }, {} as Record<string, SocialMediaSetting>) || {};
+
+  const defaultSettings = {
+    instagram: { url: '#', isVisible: true },
+    facebook: { url: '#', isVisible: true },
+    x: { url: '#', isVisible: true },
+  };
+
+  const getSetting = (platform: string) => 
+    socialMap[platform] || defaultSettings[platform as keyof typeof defaultSettings];
+
+  // Mutation for updating social media settings
+  const updateSocialMutation = useMutation({
+    mutationFn: async ({ platform, setting }: { platform: string; setting: any }) => {
+      return await apiRequest("PUT", `/api/social-media/${platform}`, setting);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/social-media'] });
+      toast({
+        title: "Settings Updated",
+        description: "Social media settings have been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to update social media settings.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSocialUpdate = (platform: string, field: string, value: any) => {
+    const currentSetting = getSetting(platform);
+    updateSocialMutation.mutate({
+      platform,
+      setting: { ...currentSetting, [field]: value }
+    });
+  };
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,16 +114,79 @@ export default function Footer() {
           <div className="text-gray-400 text-sm mb-4 md:mb-0">
             © 2024 Hana's Art Gallery. All rights reserved.
           </div>
-          <div className="flex space-x-4">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Instagram className="w-5 h-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Facebook className="w-5 h-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Twitter className="w-5 h-5" />
-            </a>
+          <div className="flex items-center space-x-4">
+            {/* Social Media Links */}
+            <div className="flex space-x-4">
+              {getSetting('instagram').isVisible && (
+                <a 
+                  href={getSetting('instagram').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {getSetting('facebook').isVisible && (
+                <a 
+                  href={getSetting('facebook').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+              )}
+              {getSetting('x').isVisible && (
+                <a 
+                  href={getSetting('x').url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </a>
+              )}
+            </div>
+            
+            {/* Admin Settings */}
+            {isAdminMode && (
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-navy-800 border-navy-700 text-white">
+                  <DialogHeader>
+                    <DialogTitle>Social Media Settings</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    {['instagram', 'facebook', 'x'].map((platform) => (
+                      <div key={platform} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="capitalize font-medium">{platform === 'x' ? 'X (Twitter)' : platform}</Label>
+                          <Switch
+                            checked={getSetting(platform).isVisible}
+                            onCheckedChange={(checked) => handleSocialUpdate(platform, 'isVisible', checked)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${platform}-url`} className="text-sm text-gray-400">URL</Label>
+                          <Input
+                            id={`${platform}-url`}
+                            value={getSetting(platform).url || ''}
+                            onChange={(e) => handleSocialUpdate(platform, 'url', e.target.value)}
+                            placeholder={`https://${platform === 'x' ? 'x.com' : platform}.com/username`}
+                            className="mt-1 bg-navy-700 border-navy-600 text-white"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </div>
