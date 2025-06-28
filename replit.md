@@ -108,6 +108,7 @@ This is a complete, production-quality online art gallery application that preci
 - June 27, 2025. ROLLBACK: Completely removed Interac e-Transfer implementation per user request - now using Stripe-only payment system with simplified checkout layout featuring smaller components, email moved to shipping section, and collapsible special instructions field
 - June 27, 2025. Removed "USD" currency labels throughout the application (cart, artwork detail, and checkout pages) while keeping only the currency disclaimer message for international customers
 - June 27, 2025. Expanded country dropdown to include all 249 countries in alphabetical order and removed free shipping logic - now all orders have fixed shipping costs ($25 for originals, $15 for prints only)
+- June 27, 2025. Enhanced payment form styling - configured Stripe Elements with night theme for white labels and proper contrast, improved country dropdown with smooth scrolling and better navigation through long country list
 
 ## User Preferences
 

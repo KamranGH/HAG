@@ -393,7 +393,7 @@ export default function CheckoutSimple() {
                                 <SelectValue placeholder="Select country" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                               <SelectItem value="AF">Afghanistan</SelectItem>
                               <SelectItem value="AL">Albania</SelectItem>
                               <SelectItem value="DZ">Algeria</SelectItem>
@@ -696,7 +696,39 @@ export default function CheckoutSimple() {
               {clientSecret && customerData && (
                 <div className="bg-slate-800 rounded-lg p-4">
                   <h2 className="text-lg font-semibold mb-3">Payment</h2>
-                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <Elements 
+                    stripe={stripePromise} 
+                    options={{ 
+                      clientSecret,
+                      appearance: {
+                        theme: 'night',
+                        variables: {
+                          colorPrimary: '#0066cc',
+                          colorBackground: '#1e293b',
+                          colorText: '#ffffff',
+                          colorDanger: '#fa755a',
+                          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+                          spacingUnit: '6px',
+                          borderRadius: '6px',
+                        },
+                        rules: {
+                          '.Input': {
+                            backgroundColor: '#334155',
+                            border: '1px solid #475569',
+                            color: '#ffffff',
+                          },
+                          '.Input:focus': {
+                            border: '1px solid #0066cc',
+                            boxShadow: '0 0 0 1px #0066cc',
+                          },
+                          '.Label': {
+                            color: '#ffffff',
+                            fontWeight: '500',
+                          },
+                        }
+                      }
+                    }}
+                  >
                     <CheckoutForm 
                       clientSecret={clientSecret}
                       customerData={customerData}

@@ -117,6 +117,41 @@
     font-weight: 500;
     letter-spacing: 0.02em;
   }
+
+  /* Stripe Elements styling */
+  .StripeElement {
+    color: white !important;
+  }
+  
+  .StripeElement--invalid {
+    color: #fa755a !important;
+  }
+  
+  .StripeElement--webkit-autofill {
+    background-color: #fefde5 !important;
+  }
+
+  /* Custom scrollbar styles for country dropdown */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    border-radius: 4px;
+  }
+  
+  .scrollbar-track-slate-800::-webkit-scrollbar-track {
+    background-color: #1e293b;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #64748b;
+  }
 }
 
 /* Custom styles for artwork cards */
