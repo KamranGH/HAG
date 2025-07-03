@@ -150,9 +150,7 @@ export default function Footer({
 
         {/* Footer Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-6 border-t border-navy-700">
-          <div className="text-gray-400 text-sm mb-4 md:mb-0">
-            © 2024 Hana's Art Gallery. All rights reserved.
-          </div>
+          <div className="text-gray-400 text-sm mb-4 md:mb-0">© 2025 Hana's Art Gallery. All rights reserved.</div>
           <div className="flex items-center space-x-4">
             {/* Social Media Links */}
             <div className="flex space-x-4">
