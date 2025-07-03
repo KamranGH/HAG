@@ -182,6 +182,7 @@ export type SocialMediaSetting = typeof socialMediaSettings.$inferSelect;
 // Schemas for validation
 export const insertArtworkSchema = createInsertSchema(artworks).omit({
   id: true,
+  slug: true, // Auto-generated on server
   createdAt: true,
   updatedAt: true,
 });

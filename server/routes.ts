@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertArtworkSchema, insertContactMessageSchema } from "@shared/schema";
+import { insertArtworkSchema, insertContactMessageSchema, generateSlug } from "@shared/schema";
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -66,7 +66,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/artworks", isAuthenticated, async (req, res) => {
     try {
       const artworkData = insertArtworkSchema.parse(req.body);
-      const artwork = await storage.createArtwork(artworkData);
+      // Generate slug from title
+      const slug = generateSlug(artworkData.title);
+      const artworkWithSlug = {
+        ...artworkData,
+        slug,
+      };
+      const artwork = await storage.createArtwork(artworkWithSlug);
       res.status(201).json(artwork);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -81,7 +87,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const artworkData = insertArtworkSchema.partial().parse(req.body);
-      const artwork = await storage.updateArtwork(id, artworkData);
+      
+      // If title is being updated, regenerate slug
+      const updateData = { ...artworkData };
+      if (artworkData.title) {
+        updateData.slug = generateSlug(artworkData.title);
+      }
+      
+      const artwork = await storage.updateArtwork(id, updateData);
       res.json(artwork);
     } catch (error) {
       if (error instanceof z.ZodError) {
