@@ -183,7 +183,6 @@ export default function ArtworkDetail() {
   return (
     <div className="min-h-screen bg-navy-900 text-white">
       <Header />
-      
       <main className="container mx-auto px-4 py-8">
 
 
@@ -233,7 +232,7 @@ export default function ArtworkDetail() {
               </div>
               {artwork.description && (
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-gray-300 leading-relaxed">
+                  <p className="text-gray-300 leading-relaxed text-justify">
                     {artwork.description}
                   </p>
                 </div>
@@ -358,14 +357,12 @@ export default function ArtworkDetail() {
           </div>
         </div>
       </main>
-      
       <Footer 
         showProductNavigation={true}
         previousProduct={previousArtwork ? { id: previousArtwork.id, title: previousArtwork.title, slug: previousArtwork.slug } : null}
         nextProduct={nextArtwork ? { id: nextArtwork.id, title: nextArtwork.title, slug: nextArtwork.slug } : null}
         onNavigateToProduct={(slug) => setLocation(`/artwork/${slug}`)}
       />
-
       {/* Image Popup Dialog */}
       <Dialog open={isImagePopupOpen} onOpenChange={setIsImagePopupOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] bg-black border-none p-0 overflow-hidden">
