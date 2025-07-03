@@ -232,7 +232,7 @@ export default function ArtworkDetail() {
                 </div>
               </div>
               {artwork.description && (
-                <div className="prose prose-invert">
+                <div className="prose prose-invert max-w-none">
                   <p className="text-gray-300 leading-relaxed">
                     {artwork.description}
                   </p>
