@@ -69,11 +69,11 @@ export default function Contact() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg font-medium text-white">Name</FormLabel>
+                    <FormLabel className="text-base font-medium text-white">Name</FormLabel>
                     <FormControl>
                       <Input 
                         {...field}
-                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-lg text-white placeholder:text-gray-400"
+                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-base text-white placeholder:text-gray-400"
                       />
                     </FormControl>
                     <FormMessage />
@@ -86,12 +86,12 @@ export default function Contact() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg font-medium text-white">Email</FormLabel>
+                    <FormLabel className="text-base font-medium text-white">Email</FormLabel>
                     <FormControl>
                       <Input 
                         type="email"
                         {...field}
-                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-lg text-white placeholder:text-gray-400"
+                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-base text-white placeholder:text-gray-400"
                       />
                     </FormControl>
                     <FormMessage />
@@ -104,11 +104,11 @@ export default function Contact() {
                 name="subject"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg font-medium text-white">Subject</FormLabel>
+                    <FormLabel className="text-base font-medium text-white">Subject</FormLabel>
                     <FormControl>
                       <Input 
                         {...field}
-                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-lg text-white placeholder:text-gray-400"
+                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-base text-white placeholder:text-gray-400"
                       />
                     </FormControl>
                     <FormMessage />
@@ -121,12 +121,12 @@ export default function Contact() {
                 name="message"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg font-medium text-white">Message</FormLabel>
+                    <FormLabel className="text-base font-medium text-white">Message</FormLabel>
                     <FormControl>
                       <Textarea 
                         {...field}
                         rows={6}
-                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-lg text-white placeholder:text-gray-400 resize-none"
+                        className="contact-input bg-transparent border-0 border-b-2 border-navy-700 focus:border-primary rounded-none px-0 py-2 text-base text-white placeholder:text-gray-400 resize-none"
                       />
                     </FormControl>
                     <FormMessage />
