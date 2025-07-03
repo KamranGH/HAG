@@ -57,10 +57,9 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-navy-900 text-white">
       <Header />
-      
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-serif font-semibold text-center mb-12">CONTACT</h1>
+          <h1 className="font-serif font-semibold text-center mb-12 text-[26px]">CONTACT</h1>
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -157,7 +156,6 @@ export default function Contact() {
           </div>
         </div>
       </main>
-      
       <Footer />
     </div>
   );
