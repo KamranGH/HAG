@@ -6,6 +6,7 @@ import {
   orderItems,
   contactMessages,
   socialMediaSettings,
+  generateSlug,
   type User,
   type UpsertUser,
   type Artwork,
@@ -32,6 +33,7 @@ export interface IStorage {
   // Artwork operations
   getAllArtworks(): Promise<Artwork[]>;
   getArtwork(id: number): Promise<Artwork | undefined>;
+  getArtworkBySlug(slug: string): Promise<Artwork | undefined>;
   createArtwork(artwork: InsertArtwork): Promise<Artwork>;
   updateArtwork(id: number, artwork: Partial<InsertArtwork>): Promise<Artwork>;
   deleteArtwork(id: number): Promise<void>;
@@ -89,8 +91,29 @@ export class DatabaseStorage implements IStorage {
     return artwork;
   }
 
+  async getArtworkBySlug(slug: string): Promise<Artwork | undefined> {
+    const [artwork] = await db.select().from(artworks).where(eq(artworks.slug, slug));
+    return artwork;
+  }
+
   async createArtwork(artworkData: InsertArtwork): Promise<Artwork> {
-    const [artwork] = await db.insert(artworks).values(artworkData).returning();
+    // Generate slug from title if not provided
+    let slug = artworkData.slug || generateSlug(artworkData.title);
+    
+    // Ensure slug uniqueness
+    let counter = 1;
+    let finalSlug = slug;
+    while (true) {
+      const existing = await this.getArtworkBySlug(finalSlug);
+      if (!existing) break;
+      finalSlug = `${slug}-${counter}`;
+      counter++;
+    }
+    
+    const [artwork] = await db
+      .insert(artworks)
+      .values({ ...artworkData, slug: finalSlug })
+      .returning();
     return artwork;
   }
 

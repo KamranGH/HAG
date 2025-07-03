@@ -109,6 +109,7 @@ This is a complete, production-quality online art gallery application that preci
 - June 27, 2025. Removed "USD" currency labels throughout the application (cart, artwork detail, and checkout pages) while keeping only the currency disclaimer message for international customers
 - June 27, 2025. Expanded country dropdown to include all 249 countries in alphabetical order and removed free shipping logic - now all orders have fixed shipping costs ($25 for originals, $15 for prints only)
 - June 27, 2025. Enhanced payment form styling - configured Stripe Elements with night theme for white labels and proper contrast, improved country dropdown with smooth scrolling and better navigation through long country list
+- July 03, 2025. Implemented slug-based URLs - replaced numeric IDs with artwork titles in URLs (e.g., /artwork/mostar instead of /artwork/7), added slug generation utility, updated database schema with unique slug column, and migrated all navigation links to use human-readable URLs
 
 ## User Preferences
 

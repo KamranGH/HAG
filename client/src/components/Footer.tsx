@@ -15,9 +15,9 @@ import type { SocialMediaSetting } from "@shared/schema";
 interface FooterProps {
   isAdminMode?: boolean;
   showProductNavigation?: boolean;
-  previousProduct?: { id: number; title: string } | null;
-  nextProduct?: { id: number; title: string } | null;
-  onNavigateToProduct?: (id: number) => void;
+  previousProduct?: { id: number; title: string; slug: string } | null;
+  nextProduct?: { id: number; title: string; slug: string } | null;
+  onNavigateToProduct?: (slug: string) => void;
 }
 
 export default function Footer({ 
@@ -103,7 +103,7 @@ export default function Footer({
           <div className="flex items-center justify-between mb-8 max-w-4xl mx-auto">
             <Button
               variant="ghost"
-              onClick={() => previousProduct && onNavigateToProduct?.(previousProduct.id)}
+              onClick={() => previousProduct && onNavigateToProduct?.(previousProduct.slug)}
               disabled={!previousProduct}
               className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
             >
@@ -113,7 +113,7 @@ export default function Footer({
             
             <Button
               variant="ghost"
-              onClick={() => nextProduct && onNavigateToProduct?.(nextProduct.id)}
+              onClick={() => nextProduct && onNavigateToProduct?.(nextProduct.slug)}
               disabled={!nextProduct}
               className="text-gray-300 hover:text-white disabled:opacity-50 flex items-center"
             >

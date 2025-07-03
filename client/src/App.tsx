@@ -19,7 +19,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Gallery} />
-      <Route path="/artwork/:id" component={ArtworkDetail} />
+      <Route path="/artwork/:slug" component={ArtworkDetail} />
       <Route path="/cart" component={Cart} />
       <Route path="/contact" component={Contact} />
       <Route path="/checkout" component={CheckoutSimple} />

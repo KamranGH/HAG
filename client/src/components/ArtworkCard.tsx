@@ -27,7 +27,7 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
   };
 
   return (
-    <Link href={`/artwork/${artwork.id}`}>
+    <Link href={`/artwork/${artwork.slug}`}>
       <div className="group cursor-pointer artwork-card">
         <div className="relative bg-navy-800 rounded-lg overflow-hidden hover:bg-navy-700 transition-all duration-300">
           <div className="relative aspect-artwork">

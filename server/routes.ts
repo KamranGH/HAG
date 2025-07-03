@@ -40,10 +40,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/artworks/:id", async (req, res) => {
+  // Get single artwork by slug or ID
+  app.get("/api/artworks/:identifier", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const artwork = await storage.getArtwork(id);
+      const identifier = req.params.identifier;
+      let artwork;
+      
+      // Try as ID first (numeric), then as slug
+      if (/^\d+$/.test(identifier)) {
+        artwork = await storage.getArtwork(parseInt(identifier));
+      } else {
+        artwork = await storage.getArtworkBySlug(identifier);
+      }
+      
       if (!artwork) {
         return res.status(404).json({ message: "Artwork not found" });
       }

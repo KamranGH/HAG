@@ -40,6 +40,7 @@ export const users = pgTable("users", {
 export const artworks = pgTable("artworks", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description"),
   year: integer("year").notNull(),
   medium: varchar("medium", { length: 255 }).notNull(),
@@ -209,3 +210,13 @@ export const insertSocialMediaSettingSchema = createInsertSchema(socialMediaSett
   id: true,
   updatedAt: true,
 });
+
+// Utility function to generate URL-friendly slugs
+export function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with single hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+}

@@ -21,7 +21,7 @@ interface CartItem {
 }
 
 export default function ArtworkDetail() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -36,7 +36,7 @@ export default function ArtworkDetail() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   const { data: artwork, isLoading, error } = useQuery<Artwork>({
-    queryKey: [`/api/artworks/${id}`],
+    queryKey: [`/api/artworks/${slug}`],
   });
 
   // Fetch all artworks for navigation
@@ -45,7 +45,7 @@ export default function ArtworkDetail() {
   });
 
   // Find current artwork index and navigation
-  const currentIndex = allArtworks?.findIndex(art => art.id === parseInt(id || '0')) ?? -1;
+  const currentIndex = allArtworks?.findIndex(art => art.slug === slug) ?? -1;
   const previousArtwork = currentIndex > 0 ? allArtworks?.[currentIndex - 1] : null;
   const nextArtwork = currentIndex >= 0 && allArtworks && currentIndex < allArtworks.length - 1 ? allArtworks[currentIndex + 1] : null;
 
@@ -361,9 +361,9 @@ export default function ArtworkDetail() {
       
       <Footer 
         showProductNavigation={true}
-        previousProduct={previousArtwork ? { id: previousArtwork.id, title: previousArtwork.title } : null}
-        nextProduct={nextArtwork ? { id: nextArtwork.id, title: nextArtwork.title } : null}
-        onNavigateToProduct={(id) => setLocation(`/artwork/${id}`)}
+        previousProduct={previousArtwork ? { id: previousArtwork.id, title: previousArtwork.title, slug: previousArtwork.slug } : null}
+        nextProduct={nextArtwork ? { id: nextArtwork.id, title: nextArtwork.title, slug: nextArtwork.slug } : null}
+        onNavigateToProduct={(slug) => setLocation(`/artwork/${slug}`)}
       />
 
       {/* Image Popup Dialog */}
