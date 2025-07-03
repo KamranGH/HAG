@@ -17,19 +17,11 @@ interface AdminPanelProps {
 export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
-  const [artworkList, setArtworkList] = useState<Artwork[]>([]);
   const { toast } = useToast();
 
   const { data: artworks, isLoading } = useQuery<Artwork[]>({
     queryKey: ['/api/artworks'],
   });
-
-  // Update local state when data changes
-  useEffect(() => {
-    if (artworks) {
-      setArtworkList(artworks);
-    }
-  }, [artworks]);
 
   const deleteArtworkMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -55,8 +47,18 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     mutationFn: async (artworkIds: number[]) => {
       await apiRequest("POST", "/api/artworks/reorder", { artworkIds });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/artworks'] });
+    onSuccess: (_, artworkIds) => {
+      // Optimistically update the cache with the new order
+      queryClient.setQueryData(['/api/artworks'], (old: any[]) => {
+        if (!old) return old;
+        
+        // Create a map for quick lookup
+        const artworkMap = new Map(old.map(artwork => [artwork.id, artwork]));
+        
+        // Return artworks in the new order
+        return artworkIds.map(id => artworkMap.get(id)).filter(Boolean);
+      });
+      
       toast({
         title: "Order Updated",
         description: "Artwork display order has been saved.",
@@ -68,6 +70,8 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
         description: error.message || "Failed to update artwork order.",
         variant: "destructive",
       });
+      // Revert local state on error
+      queryClient.invalidateQueries({ queryKey: ['/api/artworks'] });
     },
   });
 
@@ -78,15 +82,13 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   };
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+    if (!result.destination || !artworks) return;
 
-    const items = Array.from(artworkList);
+    const items = Array.from(artworks);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setArtworkList(items);
-    
-    // Send the new order to the server
+    // Send the new order to the server - optimistic update will handle UI
     const artworkIds = items.map(item => item.id);
     reorderArtworksMutation.mutate(artworkIds);
   };
@@ -122,7 +124,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                 </div>
               ))}
             </div>
-          ) : artworkList && artworkList.length > 0 ? (
+          ) : artworks && artworks.length > 0 ? (
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="artworks">
                 {(provided) => (
@@ -131,7 +133,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                     ref={provided.innerRef}
                     className="space-y-3"
                   >
-                    {artworkList.map((artwork, index) => (
+                    {artworks.map((artwork, index) => (
                       <Draggable 
                         key={artwork.id} 
                         draggableId={artwork.id.toString()} 
