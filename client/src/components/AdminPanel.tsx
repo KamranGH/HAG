@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare, Mail } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "react-beautiful-dnd";
 import AddArtworkModal from "./AddArtworkModal";
-import type { Artwork } from "@shared/schema";
+import type { Artwork, ContactMessage, NewsletterSubscription } from "@shared/schema";
 
 interface AdminPanelProps {
   onExitAdmin: () => void;
@@ -49,7 +49,13 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     queryKey: ['/api/artworks'],
   });
 
+  const { data: subscriptions, isLoading: subscriptionsLoading } = useQuery<NewsletterSubscription[]>({
+    queryKey: ['/api/admin/newsletter-subscriptions'],
+  });
 
+  const { data: contactMessages, isLoading: contactLoading } = useQuery<ContactMessage[]>({
+    queryKey: ['/api/admin/contact-messages'],
+  });
 
   const { data: orders, isLoading: ordersLoading } = useQuery<OrderWithCustomer[]>({
     queryKey: ['/api/admin/orders'],
@@ -75,7 +81,25 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     },
   });
 
-
+  const unsubscribeSubscriptionMutation = useMutation({
+    mutationFn: async (email: string) => {
+      await apiRequest("DELETE", `/api/admin/newsletter-subscriptions/${encodeURIComponent(email)}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/newsletter-subscriptions'] });
+      toast({
+        title: "Subscription Removed",
+        description: "The email has been unsubscribed from the collector's list.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Remove Failed",
+        description: error.message || "Failed to remove subscription.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const reorderArtworksMutation = useMutation({
     mutationFn: async (artworkIds: number[]) => {
@@ -105,6 +129,12 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const handleDelete = (artwork: Artwork) => {
     if (confirm(`Are you sure you want to delete "${artwork.title}"? This action cannot be undone.`)) {
       deleteArtworkMutation.mutate(artwork.id);
+    }
+  };
+
+  const handleUnsubscribe = (email: string) => {
+    if (confirm(`Are you sure you want to unsubscribe ${email} from the collector's list?`)) {
+      unsubscribeSubscriptionMutation.mutate(email);
     }
   };
 
@@ -149,9 +179,11 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
       </div>
 
       <Tabs defaultValue="artworks" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-navy-800 mb-6">
+        <TabsList className="grid w-full grid-cols-4 bg-navy-800 mb-6">
           <TabsTrigger value="artworks" className="text-white">Artworks</TabsTrigger>
           <TabsTrigger value="orders" className="text-white">Orders</TabsTrigger>
+          <TabsTrigger value="subscription" className="text-white">Subscription</TabsTrigger>
+          <TabsTrigger value="contact" className="text-white">Contact</TabsTrigger>
         </TabsList>
 
         <TabsContent value="artworks">
@@ -402,6 +434,101 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
           </Card>
         </TabsContent>
 
+        <TabsContent value="subscription">
+          <Card className="bg-navy-800 border-navy-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-semibold text-white flex items-center">
+                <Mail className="w-5 h-5 mr-2" />
+                Subscription Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {subscriptionsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-navy-700 rounded-lg p-4 animate-pulse">
+                      <div className="h-4 bg-navy-600 rounded w-1/3 mb-2"></div>
+                      <div className="h-3 bg-navy-600 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : subscriptions && subscriptions.length > 0 ? (
+                <div className="space-y-3">
+                  {subscriptions.map((subscription) => (
+                    <div key={subscription.id} className="flex justify-between items-center bg-navy-700 rounded-lg p-4">
+                      <div>
+                        <p className="font-medium text-white">{subscription.email}</p>
+                        <p className="text-sm text-gray-400">
+                          Subscribed: {formatDate(subscription.subscribedAt.toString())}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnsubscribe(subscription.email)}
+                        disabled={unsubscribeSubscriptionMutation.isPending}
+                        className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No subscriptions found.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contact">
+          <Card className="bg-navy-800 border-navy-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-semibold text-white flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Contact Messages
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contactLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-navy-700 rounded-lg p-4 animate-pulse">
+                      <div className="h-4 bg-navy-600 rounded w-1/3 mb-2"></div>
+                      <div className="h-3 bg-navy-600 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : contactMessages && contactMessages.length > 0 ? (
+                <div className="space-y-4">
+                  {contactMessages.map((message) => (
+                    <div key={message.id} className="bg-navy-700 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-white">{message.name}</h3>
+                          <p className="text-sm text-gray-400">{message.email}</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formatDateTime(message.createdAt.toString())}
+                        </p>
+                      </div>
+                      <h4 className="font-medium text-white mb-2">{message.subject}</h4>
+                      <p className="text-sm text-gray-300">{message.message}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No contact messages found.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
       </Tabs>
 
