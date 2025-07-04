@@ -177,13 +177,12 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
           Exit Admin
         </Button>
       </div>
-
       <Tabs defaultValue="artworks" className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-navy-800 mb-6">
           <TabsTrigger value="artworks" className="text-white">Artworks</TabsTrigger>
           <TabsTrigger value="orders" className="text-white">Orders</TabsTrigger>
           <TabsTrigger value="subscription" className="text-white">Subscription</TabsTrigger>
-          <TabsTrigger value="contact" className="text-white">Contact</TabsTrigger>
+          <TabsTrigger value="contact" className="text-white">Messages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="artworks">
@@ -534,12 +533,10 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
         </TabsContent>
 
       </Tabs>
-
       <AddArtworkModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
       />
-      
       {editingArtwork && (
         <AddArtworkModal 
           isOpen={true}
