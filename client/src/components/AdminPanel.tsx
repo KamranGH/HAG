@@ -818,7 +818,6 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                           <div className="px-4 pb-4 border-t border-navy-600 bg-navy-800">
                             <div className="pt-4">
                               <div className="bg-navy-900 rounded-lg p-4">
-                                <h4 className="text-white font-medium mb-3">Message Content</h4>
                                 <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                                   {message.message}
                                 </p>
