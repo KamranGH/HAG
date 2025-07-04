@@ -56,6 +56,7 @@ export interface IStorage {
   // Contact operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
   getAllContactMessages(): Promise<ContactMessage[]>;
+  deleteContactMessage(id: number): Promise<void>;
 
   // Newsletter operations
   subscribeToNewsletter(email: string): Promise<NewsletterSubscription>;
@@ -64,6 +65,7 @@ export interface IStorage {
 
   // Enhanced order operations
   getAllOrders(): Promise<(Order & { customer: Customer, itemCount: number })[]>;
+  getAllOrdersWithItems(): Promise<(Order & { customer: Customer, items: (OrderItem & { artwork: Artwork })[] })[]>;
 
   // Social media operations
   getSocialMediaSettings(): Promise<SocialMediaSetting[]>;
@@ -305,6 +307,125 @@ export class DatabaseStorage implements IStorage {
     );
 
     return ordersWithItemCounts;
+  }
+
+  async getAllOrdersWithItems(): Promise<(Order & { customer: Customer, items: (OrderItem & { artwork: Artwork })[] })[]> {
+    const ordersWithCustomers = await db
+      .select({
+        id: orders.id,
+        customerId: orders.customerId,
+        totalAmount: orders.totalAmount,
+        shippingCost: orders.shippingCost,
+        subtotal: orders.subtotal,
+        status: orders.status,
+        paymentIntentId: orders.paymentIntentId,
+        specialInstructions: orders.specialInstructions,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        customerEmail: customers.email,
+        customerIdField: customers.id,
+        customerPhone: customers.phone,
+        customerAddress: customers.address,
+        customerCity: customers.city,
+        customerZipCode: customers.zipCode,
+        customerCountry: customers.country,
+        customerCreatedAt: customers.createdAt,
+        customerUpdatedAt: customers.updatedAt,
+      })
+      .from(orders)
+      .innerJoin(customers, eq(orders.customerId, customers.id))
+      .orderBy(desc(orders.createdAt));
+
+    // Get items for each order
+    const ordersWithItems = await Promise.all(
+      ordersWithCustomers.map(async (orderData) => {
+        const items = await db
+          .select({
+            id: orderItems.id,
+            orderId: orderItems.orderId,
+            artworkId: orderItems.artworkId,
+            type: orderItems.type,
+            printSize: orderItems.printSize,
+            quantity: orderItems.quantity,
+            unitPrice: orderItems.unitPrice,
+            totalPrice: orderItems.totalPrice,
+            createdAt: orderItems.createdAt,
+            artworkTitle: artworks.title,
+            artworkSlug: artworks.slug,
+            artworkImages: artworks.images,
+            artworkOriginalPrice: artworks.originalPrice,
+            artworkPrintOptions: artworks.printOptions,
+            artworkDescription: artworks.description,
+            artworkOriginalSold: artworks.originalSold,
+            artworkDisplayOrder: artworks.displayOrder,
+            artworkCreatedAt: artworks.createdAt,
+            artworkUpdatedAt: artworks.updatedAt,
+            artworkId2: artworks.id,
+          })
+          .from(orderItems)
+          .innerJoin(artworks, eq(orderItems.artworkId, artworks.id))
+          .where(eq(orderItems.orderId, orderData.id));
+        
+        return {
+          id: orderData.id,
+          customerId: orderData.customerId,
+          totalAmount: orderData.totalAmount,
+          shippingCost: orderData.shippingCost,
+          subtotal: orderData.subtotal,
+          status: orderData.status,
+          paymentIntentId: orderData.paymentIntentId,
+          specialInstructions: orderData.specialInstructions,
+          createdAt: orderData.createdAt,
+          updatedAt: orderData.updatedAt,
+          customer: {
+            id: orderData.customerIdField,
+            firstName: orderData.customerFirstName,
+            lastName: orderData.customerLastName,
+            email: orderData.customerEmail,
+            phone: orderData.customerPhone,
+            address: orderData.customerAddress,
+            city: orderData.customerCity,
+            zipCode: orderData.customerZipCode,
+            country: orderData.customerCountry,
+            createdAt: orderData.customerCreatedAt,
+            updatedAt: orderData.customerUpdatedAt,
+          },
+          items: items.map(item => ({
+            id: item.id,
+            orderId: item.orderId,
+            artworkId: item.artworkId,
+            type: item.type,
+            printSize: item.printSize,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            createdAt: item.createdAt,
+            artwork: {
+              id: item.artworkId2,
+              title: item.artworkTitle,
+              slug: item.artworkSlug,
+              images: item.artworkImages,
+              description: item.artworkDescription,
+              originalPrice: item.artworkOriginalPrice,
+              originalAvailable: true,
+              originalSold: item.artworkOriginalSold,
+              printOptions: item.artworkPrintOptions,
+              displayOrder: item.artworkDisplayOrder,
+              createdAt: item.artworkCreatedAt,
+              updatedAt: item.artworkUpdatedAt,
+            }
+          }))
+        };
+      })
+    );
+
+    return ordersWithItems;
+  }
+
+  async deleteContactMessage(id: number): Promise<void> {
+    await db.delete(contactMessages).where(eq(contactMessages.id, id));
   }
 
   // Social media operations

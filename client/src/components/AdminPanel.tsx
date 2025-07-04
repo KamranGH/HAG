@@ -16,7 +16,7 @@ interface AdminPanelProps {
   onExitAdmin: () => void;
 }
 
-interface OrderWithCustomer {
+interface OrderWithCustomerAndItems {
   id: number;
   totalAmount: string;
   shippingCost: string;
@@ -37,7 +37,20 @@ interface OrderWithCustomer {
     createdAt: Date;
     updatedAt: Date;
   };
-  itemCount: number;
+  items: Array<{
+    id: number;
+    type: string;
+    printSize?: string;
+    quantity: number;
+    unitPrice: string;
+    totalPrice: string;
+    artwork: {
+      id: number;
+      title: string;
+      slug: string;
+      images: string[];
+    };
+  }>;
 }
 
 export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
@@ -57,7 +70,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     queryKey: ['/api/admin/contact-messages'],
   });
 
-  const { data: orders, isLoading: ordersLoading } = useQuery<OrderWithCustomer[]>({
+  const { data: orders, isLoading: ordersLoading } = useQuery<OrderWithCustomerAndItems[]>({
     queryKey: ['/api/admin/orders'],
   });
 
@@ -135,6 +148,56 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const handleUnsubscribe = (email: string) => {
     if (confirm(`Are you sure you want to unsubscribe ${email} from the collector's list?`)) {
       unsubscribeSubscriptionMutation.mutate(email);
+    }
+  };
+
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
+      await apiRequest("PATCH", `/api/admin/orders/${orderId}/status`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      toast({
+        title: "Order Updated",
+        description: "Order status has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update order status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteContactMessageMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      await apiRequest("DELETE", `/api/admin/contact-messages/${messageId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/contact-messages'] });
+      toast({
+        title: "Message Deleted",
+        description: "Contact message has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete contact message.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMarkAsCompleted = (orderId: number) => {
+    updateOrderStatusMutation.mutate({ orderId, status: "completed" });
+  };
+
+  const handleDeleteMessage = (messageId: number, senderName: string) => {
+    if (confirm(`Are you sure you want to delete the message from ${senderName}?`)) {
+      deleteContactMessageMutation.mutate(messageId);
     }
   };
 
@@ -388,15 +451,50 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                         </div>
                       </div>
                       
+                      {/* Order Items */}
+                      <div className="bg-navy-800 rounded-lg p-4 mb-4">
+                        <h4 className="flex items-center text-white font-medium mb-3">
+                          <Package className="w-4 h-4 mr-2" />
+                          Order Items
+                        </h4>
+                        <div className="space-y-2">
+                          {order.items && order.items.length > 0 ? order.items.map((item) => (
+                            <div key={item.id} className="flex justify-between items-center p-2 bg-navy-700 rounded">
+                              <div className="flex items-center space-x-3">
+                                {item.artwork.images && item.artwork.images.length > 0 && (
+                                  <img 
+                                    src={item.artwork.images[0]} 
+                                    alt={item.artwork.title}
+                                    className="w-8 h-10 object-cover rounded"
+                                  />
+                                )}
+                                <div>
+                                  <p className="text-white text-sm font-medium">{item.artwork.title}</p>
+                                  <p className="text-gray-400 text-xs">
+                                    {item.type === 'original' ? 'Original' : `Print${item.printSize ? ` (${item.printSize})` : ''}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-white text-sm">Qty: {item.quantity}</p>
+                                <p className="text-gray-300 text-xs">${item.totalPrice}</p>
+                              </div>
+                            </div>
+                          )) : (
+                            <p className="text-gray-400 text-center py-2">No items found</p>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Order Summary */}
                       <div className="bg-navy-800 rounded-lg p-4 mb-4">
                         <h4 className="flex items-center text-white font-medium mb-2">
-                          <Package className="w-4 h-4 mr-2" />
-                          Order Summary
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Payment Summary
                         </h4>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-300">{order.itemCount} item{order.itemCount !== 1 ? 's' : ''}</span>
+                            <span className="text-gray-300">{order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}</span>
                             <span className="text-gray-300">${order.subtotal}</span>
                           </div>
                           <div className="flex justify-between">
@@ -408,6 +506,23 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                             <span className="text-white">${order.totalAmount}</span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Order Actions */}
+                      <div className="flex justify-between items-center">
+                        <div className="text-xs text-gray-500">
+                          Created: {formatDateTime(order.createdAt)}
+                        </div>
+                        {order.status !== 'completed' && (
+                          <Button
+                            onClick={() => handleMarkAsCompleted(order.id)}
+                            disabled={updateOrderStatusMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            size="sm"
+                          >
+                            Mark as Completed
+                          </Button>
+                        )}
                       </div>
                       
                       {/* Special Instructions */}
@@ -513,9 +628,20 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                           <h3 className="font-semibold text-white">{message.name}</h3>
                           <p className="text-sm text-gray-400">{message.email}</p>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          {formatDateTime(message.createdAt.toString())}
-                        </p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs text-gray-500">
+                            {formatDateTime(message.createdAt.toString())}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteMessage(message.id, message.name)}
+                            disabled={deleteContactMessageMutation.isPending}
+                            className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                       <h4 className="font-medium text-white mb-2">{message.subject}</h4>
                       <p className="text-sm text-gray-300">{message.message}</p>

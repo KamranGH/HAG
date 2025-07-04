@@ -388,11 +388,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/orders", isAuthenticated, async (req, res) => {
     try {
-      const orders = await storage.getAllOrders();
+      const orders = await storage.getAllOrdersWithItems();
       res.json(orders);
     } catch (error: any) {
       console.error("Error fetching orders:", error);
       res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      
+      const order = await storage.updateOrderStatus(parseInt(id), status);
+      res.json(order);
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+
+  app.delete("/api/admin/contact-messages/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteContactMessage(parseInt(id));
+      res.json({ message: "Contact message deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting contact message:", error);
+      res.status(500).json({ message: "Failed to delete contact message" });
     }
   });
 
