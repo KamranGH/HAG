@@ -623,9 +623,11 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                                     <>
                                       <p className="text-gray-300 text-sm">{order.customer.address}</p>
                                       <p className="text-gray-300 text-sm">
-                                        {order.customer.city}, {order.customer.zipCode}
+                                        {order.customer.city}{order.customer.zipCode ? `, ${order.customer.zipCode}` : ''}
                                       </p>
-                                      <p className="text-gray-300 text-sm">{order.customer.country}</p>
+                                      {order.customer.country && (
+                                        <p className="text-gray-300 text-sm">{order.customer.country}</p>
+                                      )}
                                     </>
                                   ) : (
                                     <p className="text-gray-400 text-sm italic">No shipping address provided</p>
