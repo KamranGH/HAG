@@ -6,6 +6,7 @@ import {
   orderItems,
   contactMessages,
   socialMediaSettings,
+  newsletterSubscriptions,
   generateSlug,
   type User,
   type UpsertUser,
@@ -21,9 +22,11 @@ import {
   type InsertContactMessage,
   type SocialMediaSetting,
   type InsertSocialMediaSetting,
+  type NewsletterSubscription,
+  type InsertNewsletterSubscription,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -52,6 +55,15 @@ export interface IStorage {
 
   // Contact operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  getAllContactMessages(): Promise<ContactMessage[]>;
+
+  // Newsletter operations
+  subscribeToNewsletter(email: string): Promise<NewsletterSubscription>;
+  getAllNewsletterSubscriptions(): Promise<NewsletterSubscription[]>;
+  unsubscribeFromNewsletter(email: string): Promise<void>;
+
+  // Enhanced order operations
+  getAllOrders(): Promise<(Order & { customer: Customer, itemCount: number })[]>;
 
   // Social media operations
   getSocialMediaSettings(): Promise<SocialMediaSetting[]>;
@@ -198,6 +210,66 @@ export class DatabaseStorage implements IStorage {
   async createContactMessage(messageData: InsertContactMessage): Promise<ContactMessage> {
     const [message] = await db.insert(contactMessages).values(messageData).returning();
     return message;
+  }
+
+  async getAllContactMessages(): Promise<ContactMessage[]> {
+    return await db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+  }
+
+  // Newsletter operations
+  async subscribeToNewsletter(email: string): Promise<NewsletterSubscription> {
+    const [subscription] = await db
+      .insert(newsletterSubscriptions)
+      .values({ email })
+      .onConflictDoUpdate({
+        target: newsletterSubscriptions.email,
+        set: { isActive: true },
+      })
+      .returning();
+    return subscription;
+  }
+
+  async getAllNewsletterSubscriptions(): Promise<NewsletterSubscription[]> {
+    return await db.select().from(newsletterSubscriptions)
+      .where(eq(newsletterSubscriptions.isActive, true))
+      .orderBy(desc(newsletterSubscriptions.subscribeDate));
+  }
+
+  async unsubscribeFromNewsletter(email: string): Promise<void> {
+    await db
+      .update(newsletterSubscriptions)
+      .set({ isActive: false })
+      .where(eq(newsletterSubscriptions.email, email));
+  }
+
+  // Enhanced order operations
+  async getAllOrders(): Promise<(Order & { customer: Customer, itemCount: number })[]> {
+    const ordersWithCustomers = await db
+      .select({
+        ...orders,
+        customer: customers,
+      })
+      .from(orders)
+      .innerJoin(customers, eq(orders.customerId, customers.id))
+      .orderBy(desc(orders.createdAt));
+
+    // Get item counts for each order
+    const ordersWithItemCounts = await Promise.all(
+      ordersWithCustomers.map(async (orderData) => {
+        const itemCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, orderData.orders.id));
+        
+        return {
+          ...orderData.orders,
+          customer: orderData.customer,
+          itemCount: itemCount[0]?.count || 0,
+        };
+      })
+    );
+
+    return ordersWithItemCounts;
   }
 
   // Social media operations

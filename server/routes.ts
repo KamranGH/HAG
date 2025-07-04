@@ -283,6 +283,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Newsletter subscription
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const subscription = await storage.subscribeToNewsletter(email);
+      res.json({ message: "Successfully subscribed to newsletter" });
+    } catch (error: any) {
+      console.error("Error subscribing to newsletter:", error);
+      res.status(500).json({ message: "Failed to subscribe to newsletter" });
+    }
+  });
+
   // Social media settings routes
   app.get("/api/social-media", async (req, res) => {
     try {
@@ -314,6 +329,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating social media setting:", error);
       res.status(500).json({ message: "Failed to update social media setting" });
+    }
+  });
+
+  // Admin routes
+  app.get("/api/admin/newsletter-subscriptions", isAuthenticated, async (req, res) => {
+    try {
+      const subscriptions = await storage.getAllNewsletterSubscriptions();
+      res.json(subscriptions);
+    } catch (error: any) {
+      console.error("Error fetching newsletter subscriptions:", error);
+      res.status(500).json({ message: "Failed to fetch newsletter subscriptions" });
+    }
+  });
+
+  app.get("/api/admin/contact-messages", isAuthenticated, async (req, res) => {
+    try {
+      const messages = await storage.getAllContactMessages();
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Error fetching contact messages:", error);
+      res.status(500).json({ message: "Failed to fetch contact messages" });
+    }
+  });
+
+  app.get("/api/admin/orders", isAuthenticated, async (req, res) => {
+    try {
+      const orders = await storage.getAllOrders();
+      res.json(orders);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.delete("/api/admin/newsletter-subscriptions/:email", isAuthenticated, async (req, res) => {
+    try {
+      const { email } = req.params;
+      await storage.unsubscribeFromNewsletter(decodeURIComponent(email));
+      res.json({ message: "Successfully unsubscribed" });
+    } catch (error: any) {
+      console.error("Error unsubscribing:", error);
+      res.status(500).json({ message: "Failed to unsubscribe" });
     }
   });
 

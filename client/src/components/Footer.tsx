@@ -83,16 +83,40 @@ export default function Footer({
     });
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    
-    // In a real app, this would send to your email service
-    toast({
-      title: "Successfully subscribed!",
-      description: "You'll be the first to know about new artworks.",
-    });
-    setEmail("");
+    if (email) {
+      try {
+        const response = await fetch("/api/newsletter/subscribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Subscribed!",
+            description: "You've been added to our collector's list.",
+          });
+          setEmail("");
+        } else {
+          const errorData = await response.json();
+          toast({
+            title: "Subscription Failed",
+            description: errorData.message || "Please try again.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Unable to subscribe. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   return (
@@ -110,7 +134,7 @@ export default function Footer({
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous Product
             </Button>
-            
+
             <Button
               variant="ghost"
               onClick={() => nextProduct && onNavigateToProduct?.(nextProduct.slug)}
@@ -215,7 +239,7 @@ export default function Footer({
                 </a>
               )}
             </div>
-            
+
             {/* Admin Settings */}
             {isAdminMode && (
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
