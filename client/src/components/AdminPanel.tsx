@@ -841,8 +841,8 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                                 )}
                                 <h3 className="font-semibold text-white">{message.name}</h3>
                               </div>
-                              <div className="text-sm text-gray-300 font-medium">{message.subject}</div>
                               <div className="text-sm text-gray-300">{message.email}</div>
+                              <div className="text-sm text-gray-300 font-medium">{message.subject}</div>
                             </div>
                             <div className="flex items-center space-x-2">
                               <div className="text-xs text-gray-500">
