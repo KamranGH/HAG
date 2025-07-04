@@ -52,6 +52,7 @@ export interface IStorage {
   getOrderWithItems(id: number): Promise<(Order & { items: (OrderItem & { artwork: Artwork })[] }) | undefined>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  deleteOrder(id: number): Promise<void>;
 
   // Contact operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
@@ -452,6 +453,16 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return setting;
+  }
+
+  async deleteOrder(id: number): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      // First delete the order items
+      await tx.delete(orderItems).where(eq(orderItems.orderId, id));
+      
+      // Then delete the order
+      await tx.delete(orders).where(eq(orders.id, id));
+    });
   }
 }
 

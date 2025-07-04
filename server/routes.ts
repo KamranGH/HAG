@@ -413,6 +413,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/admin/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deleteOrder(parseInt(id));
+      res.json({ message: "Order deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting order:", error);
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
   app.delete("/api/admin/contact-messages/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;

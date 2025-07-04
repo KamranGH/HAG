@@ -179,6 +179,26 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     },
   });
 
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      await apiRequest("DELETE", `/api/admin/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      toast({
+        title: "Order Deleted",
+        description: "Order has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete order.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteContactMessageMutation = useMutation({
     mutationFn: async (messageId: number) => {
       await apiRequest("DELETE", `/api/admin/contact-messages/${messageId}`);
@@ -201,6 +221,16 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
 
   const handleMarkAsCompleted = (orderId: number) => {
     updateOrderStatusMutation.mutate({ orderId, status: "completed" });
+  };
+
+  const handleMarkAsPending = (orderId: number) => {
+    updateOrderStatusMutation.mutate({ orderId, status: "pending" });
+  };
+
+  const handleDeleteOrder = (orderId: number, customerName: string) => {
+    if (confirm(`Are you sure you want to delete order #${orderId} for ${customerName}? This action cannot be undone.`)) {
+      deleteOrderMutation.mutate(orderId);
+    }
   };
 
   const handleDeleteMessage = (messageId: number, senderName: string) => {
@@ -643,16 +673,35 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                                 <div className="text-xs text-gray-500">
                                   Created: {formatDateTime(order.createdAt)}
                                 </div>
-                                {order.status !== 'completed' && (
+                                <div className="flex items-center space-x-2">
+                                  {order.status === 'completed' ? (
+                                    <Button
+                                      onClick={() => handleMarkAsPending(order.id)}
+                                      disabled={updateOrderStatusMutation.isPending}
+                                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                                      size="sm"
+                                    >
+                                      Mark as Pending
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      onClick={() => handleMarkAsCompleted(order.id)}
+                                      disabled={updateOrderStatusMutation.isPending}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                      size="sm"
+                                    >
+                                      Mark as Completed
+                                    </Button>
+                                  )}
                                   <Button
-                                    onClick={() => handleMarkAsCompleted(order.id)}
-                                    disabled={updateOrderStatusMutation.isPending}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => handleDeleteOrder(order.id, `${order.customer.firstName} ${order.customer.lastName}`)}
+                                    disabled={deleteOrderMutation.isPending}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
                                     size="sm"
                                   >
-                                    Mark as Completed
+                                    <Trash2 className="w-4 h-4" />
                                   </Button>
-                                )}
+                                </div>
                               </div>
                               
                               {/* Special Instructions */}
