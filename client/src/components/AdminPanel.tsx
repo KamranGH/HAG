@@ -670,6 +670,19 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                                 </div>
                               </div>
 
+                              {/* Special Instructions */}
+                              {order.specialInstructions && (
+                                <div className="bg-navy-900 rounded-lg p-4">
+                                  <h4 className="flex items-center text-white font-medium mb-2">
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Special Instructions
+                                  </h4>
+                                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                                    {order.specialInstructions}
+                                  </p>
+                                </div>
+                              )}
+
                               {/* Order Actions */}
                               <div className="flex justify-between items-center">
                                 <div className="text-xs text-gray-500">
