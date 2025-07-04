@@ -203,9 +203,10 @@ export default function CheckoutSimple() {
 
   // Create payment intent when form is first loaded
   const createPaymentIntent = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (customerData?: CustomerData) => {
       const response = await apiRequest('POST', '/api/create-payment-intent', {
         amount: total,
+        customerData,
       });
       return response.json();
     },
@@ -224,12 +225,14 @@ export default function CheckoutSimple() {
   // Initialize payment intent when component loads
   useEffect(() => {
     if (cartItems.length > 0 && total > 0) {
-      createPaymentIntent.mutate();
+      createPaymentIntent.mutate(undefined);
     }
   }, [total]);
 
   const onSubmit = (data: CustomerData) => {
     setCustomerData(data);
+    // Recreate payment intent with customer data for shipping info
+    createPaymentIntent.mutate(data);
   };
 
   const handlePaymentSuccess = (orderId: number) => {

@@ -174,6 +174,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             postal_code: customerData.zipCode,
             country: customerData.country,
           },
+          phone: customerData.phone,
+        };
+        
+        // Add customer email for receipt
+        paymentIntentData.receipt_email = customerData.email;
+        
+        // Add metadata for better tracking
+        paymentIntentData.metadata = {
+          customer_name: `${customerData.firstName} ${customerData.lastName}`,
+          customer_email: customerData.email,
+          customer_phone: customerData.phone,
         };
       }
 
