@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
             quantity: orderItems.quantity,
             unitPrice: orderItems.unitPrice,
             totalPrice: orderItems.totalPrice,
-            createdAt: orderItems.createdAt,
+
             artworkTitle: artworks.title,
             artworkSlug: artworks.slug,
             artworkImages: artworks.images,
@@ -401,7 +401,6 @@ export class DatabaseStorage implements IStorage {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
-            createdAt: item.createdAt,
             artwork: {
               id: item.artworkId2,
               title: item.artworkTitle,
