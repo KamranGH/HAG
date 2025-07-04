@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare, Mail } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare, Mail, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +56,13 @@ interface OrderWithCustomerAndItems {
 export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
+  const [currentArtworkPage, setCurrentArtworkPage] = useState(1);
+  const [currentOrderPage, setCurrentOrderPage] = useState(1);
+  const [currentSubscriptionPage, setCurrentSubscriptionPage] = useState(1);
+  const [currentContactPage, setCurrentContactPage] = useState(1);
   const { toast } = useToast();
+
+  const ITEMS_PER_PAGE = 5;
 
   const { data: artworks, isLoading: artworksLoading } = useQuery<Artwork[]>({
     queryKey: ['/api/artworks'],
@@ -201,6 +207,93 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     }
   };
 
+  // Pagination helper functions
+  const getPaginatedItems = <T,>(items: T[], currentPage: number): T[] => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return items.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (totalItems: number): number => {
+    return Math.ceil(totalItems / ITEMS_PER_PAGE);
+  };
+
+  // Paginated data
+  const paginatedArtworks = artworks ? getPaginatedItems(artworks, currentArtworkPage) : [];
+  const paginatedOrders = orders ? getPaginatedItems(orders, currentOrderPage) : [];
+  const paginatedSubscriptions = subscriptions ? getPaginatedItems(subscriptions, currentSubscriptionPage) : [];
+  const paginatedContactMessages = contactMessages ? getPaginatedItems(contactMessages, currentContactPage) : [];
+
+  const artworksTotalPages = artworks ? getTotalPages(artworks.length) : 0;
+  const ordersTotalPages = orders ? getTotalPages(orders.length) : 0;
+  const subscriptionsTotalPages = subscriptions ? getTotalPages(subscriptions.length) : 0;
+  const contactTotalPages = contactMessages ? getTotalPages(contactMessages.length) : 0;
+
+  // Pagination component
+  const PaginationControls = ({ 
+    currentPage, 
+    totalPages, 
+    onPageChange, 
+    totalItems 
+  }: { 
+    currentPage: number; 
+    totalPages: number; 
+    onPageChange: (page: number) => void; 
+    totalItems: number;
+  }) => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-navy-600">
+        <div className="text-sm text-gray-400">
+          Showing page {currentPage} of {totalPages} ({totalItems} total items)
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="text-white border-navy-500 hover:bg-navy-600"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center space-x-1">
+            {[...Array(totalPages)].map((_, i) => {
+              const page = i + 1;
+              if (totalPages > 7 && (page > 3 && page < totalPages - 2 && Math.abs(page - currentPage) > 1)) {
+                return page === 4 && currentPage > 5 ? <span key={page} className="text-gray-400">...</span> : null;
+              }
+              return (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(page)}
+                  className={currentPage === page ? 
+                    "bg-primary text-white" : 
+                    "text-white border-navy-500 hover:bg-navy-600"
+                  }
+                >
+                  {page}
+                </Button>
+              );
+            })}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="text-white border-navy-500 hover:bg-navy-600"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
 
 
   const handleDragEnd = (result: DropResult) => {
@@ -283,7 +376,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                         ref={provided.innerRef}
                         className="space-y-3"
                       >
-                        {artworks.map((artwork, index) => (
+                        {paginatedArtworks.map((artwork, index) => (
                           <Draggable 
                             key={artwork.id} 
                             draggableId={artwork.id.toString()} 
@@ -373,6 +466,14 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   <p>No artworks found. Add your first piece to get started.</p>
                 </div>
               )}
+              {artworks && artworks.length > 0 && (
+                <PaginationControls
+                  currentPage={currentArtworkPage}
+                  totalPages={artworksTotalPages}
+                  onPageChange={setCurrentArtworkPage}
+                  totalItems={artworks.length}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -397,7 +498,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                 </div>
               ) : orders && orders.length > 0 ? (
                 <div className="space-y-3">
-                  {orders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <div key={order.id} className="bg-navy-700 rounded-lg p-6 border border-navy-600">
                       <div className="flex justify-between items-start mb-4">
                         <div>
@@ -544,6 +645,14 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   <p>No orders found.</p>
                 </div>
               )}
+              {orders && orders.length > 0 && (
+                <PaginationControls
+                  currentPage={currentOrderPage}
+                  totalPages={ordersTotalPages}
+                  onPageChange={setCurrentOrderPage}
+                  totalItems={orders.length}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -573,7 +682,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                 </div>
               ) : subscriptions && subscriptions.length > 0 ? (
                 <div className="space-y-2">
-                  {subscriptions.map((subscription) => (
+                  {paginatedSubscriptions.map((subscription) => (
                     <div key={subscription.id} className="flex justify-between items-center bg-navy-700 rounded-lg p-3">
                       <div>
                         <p className="font-medium text-white">{subscription.email}</p>
@@ -596,6 +705,14 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   <p>No email subscriptions found.</p>
                   <p className="text-sm mt-1">Visitors can join the collector's list from the footer.</p>
                 </div>
+              )}
+              {subscriptions && subscriptions.length > 0 && (
+                <PaginationControls
+                  currentPage={currentSubscriptionPage}
+                  totalPages={subscriptionsTotalPages}
+                  onPageChange={setCurrentSubscriptionPage}
+                  totalItems={subscriptions.length}
+                />
               )}
             </CardContent>
           </Card>
@@ -621,7 +738,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                 </div>
               ) : contactMessages && contactMessages.length > 0 ? (
                 <div className="space-y-4">
-                  {contactMessages.map((message) => (
+                  {paginatedContactMessages.map((message) => (
                     <div key={message.id} className="bg-navy-700 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -653,6 +770,14 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No contact messages found.</p>
                 </div>
+              )}
+              {contactMessages && contactMessages.length > 0 && (
+                <PaginationControls
+                  currentPage={currentContactPage}
+                  totalPages={contactTotalPages}
+                  onPageChange={setCurrentContactPage}
+                  totalItems={contactMessages.length}
+                />
               )}
             </CardContent>
           </Card>
