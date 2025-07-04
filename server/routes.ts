@@ -283,7 +283,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Newsletter subscription
+  // Email subscription routes
+  app.post("/api/subscriptions", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const subscription = await storage.subscribeToNewsletter(email);
+      res.json({ message: "Successfully subscribed to collector's list" });
+    } catch (error: any) {
+      console.error("Error subscribing to list:", error);
+      res.status(500).json({ message: "Failed to subscribe to collector's list" });
+    }
+  });
+
+  // Keep backward compatibility
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
       const { email } = req.body;
@@ -291,10 +306,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
       const subscription = await storage.subscribeToNewsletter(email);
-      res.json({ message: "Successfully subscribed to newsletter" });
+      res.json({ message: "Successfully subscribed to collector's list" });
     } catch (error: any) {
-      console.error("Error subscribing to newsletter:", error);
-      res.status(500).json({ message: "Failed to subscribe to newsletter" });
+      console.error("Error subscribing to list:", error);
+      res.status(500).json({ message: "Failed to subscribe to collector's list" });
     }
   });
 

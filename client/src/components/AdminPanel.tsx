@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Mail, MessageSquare, ShoppingCart, Calendar, User } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "react-beautiful-dnd";
 import AddArtworkModal from "./AddArtworkModal";
-import type { Artwork, ContactMessage, NewsletterSubscription } from "@shared/schema";
+import type { Artwork } from "@shared/schema";
 
 interface AdminPanelProps {
   onExitAdmin: () => void;
@@ -19,12 +19,23 @@ interface AdminPanelProps {
 interface OrderWithCustomer {
   id: number;
   totalAmount: string;
+  shippingCost: string;
+  subtotal: string;
   status: string;
   createdAt: string;
+  specialInstructions?: string;
   customer: {
+    id: number;
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
+    address: string;
+    city: string;
+    zipCode: string;
+    country: string;
+    createdAt: Date;
+    updatedAt: Date;
   };
   itemCount: number;
 }
@@ -38,13 +49,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     queryKey: ['/api/artworks'],
   });
 
-  const { data: newsletterSubscriptions, isLoading: newsletterLoading } = useQuery<NewsletterSubscription[]>({
-    queryKey: ['/api/admin/newsletter-subscriptions'],
-  });
 
-  const { data: contactMessages, isLoading: contactLoading } = useQuery<ContactMessage[]>({
-    queryKey: ['/api/admin/contact-messages'],
-  });
 
   const { data: orders, isLoading: ordersLoading } = useQuery<OrderWithCustomer[]>({
     queryKey: ['/api/admin/orders'],
@@ -70,25 +75,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     },
   });
 
-  const unsubscribeNewsletterMutation = useMutation({
-    mutationFn: async (email: string) => {
-      await apiRequest("DELETE", `/api/admin/newsletter-subscriptions/${encodeURIComponent(email)}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/newsletter-subscriptions'] });
-      toast({
-        title: "Subscription Removed",
-        description: "The email has been unsubscribed from the newsletter.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Remove Failed",
-        description: error.message || "Failed to remove subscription.",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const reorderArtworksMutation = useMutation({
     mutationFn: async (artworkIds: number[]) => {
@@ -121,11 +108,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
     }
   };
 
-  const handleUnsubscribe = (email: string) => {
-    if (confirm(`Are you sure you want to unsubscribe ${email} from the newsletter?`)) {
-      unsubscribeNewsletterMutation.mutate(email);
-    }
-  };
+
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !artworks) return;
@@ -166,11 +149,9 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
       </div>
 
       <Tabs defaultValue="artworks" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-navy-800 mb-6">
+        <TabsList className="grid w-full grid-cols-2 bg-navy-800 mb-6">
           <TabsTrigger value="artworks" className="text-white">Artworks</TabsTrigger>
           <TabsTrigger value="orders" className="text-white">Orders</TabsTrigger>
-          <TabsTrigger value="newsletter" className="text-white">Newsletter</TabsTrigger>
-          <TabsTrigger value="contact" className="text-white">Contact</TabsTrigger>
         </TabsList>
 
         <TabsContent value="artworks">
@@ -254,9 +235,9 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                                             Original Sold
                                           </Badge>
                                         )}
-                                        {artwork.printOptions && artwork.printOptions.length > 0 && (
+                                        {artwork.printOptions && (artwork.printOptions as any[])?.length > 0 && (
                                           <Badge variant="secondary" className="text-xs">
-                                            {artwork.printOptions.length} Print Options
+                                            {(artwork.printOptions as any[]).length} Print Options
                                           </Badge>
                                         )}
                                       </div>
@@ -323,32 +304,91 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
               ) : orders && orders.length > 0 ? (
                 <div className="space-y-3">
                   {orders.map((order) => (
-                    <div key={order.id} className="bg-navy-700 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
+                    <div key={order.id} className="bg-navy-700 rounded-lg p-6 border border-navy-600">
+                      <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="font-semibold text-white">Order #{order.id}</h3>
-                          <p className="text-sm text-gray-300">
-                            {order.customer.firstName} {order.customer.lastName}
-                          </p>
-                          <p className="text-sm text-gray-400">{order.customer.email}</p>
+                          <h3 className="font-semibold text-white text-lg">Order #{order.id}</h3>
                           <p className="text-xs text-gray-500 mt-1">
                             <Calendar className="w-3 h-3 inline mr-1" />
                             {formatDateTime(order.createdAt)}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-white">${order.totalAmount}</p>
+                          <p className="font-semibold text-white text-lg">${order.totalAmount}</p>
                           <Badge 
                             variant={order.status === 'completed' ? 'default' : 'secondary'}
                             className="mt-1"
                           >
                             {order.status}
                           </Badge>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {order.itemCount} item{order.itemCount !== 1 ? 's' : ''}
-                          </p>
                         </div>
                       </div>
+                      
+                      {/* Customer Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="bg-navy-800 rounded-lg p-4">
+                          <h4 className="flex items-center text-white font-medium mb-2">
+                            <User className="w-4 h-4 mr-2" />
+                            Customer Details
+                          </h4>
+                          <p className="text-white">{order.customer.firstName} {order.customer.lastName}</p>
+                          <p className="text-gray-300 text-sm">{order.customer.email}</p>
+                          {order.customer.phone && (
+                            <p className="text-gray-300 text-sm">{order.customer.phone}</p>
+                          )}
+                        </div>
+                        
+                        <div className="bg-navy-800 rounded-lg p-4">
+                          <h4 className="flex items-center text-white font-medium mb-2">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            Shipping Address
+                          </h4>
+                          {order.customer.address ? (
+                            <>
+                              <p className="text-gray-300 text-sm">{order.customer.address}</p>
+                              <p className="text-gray-300 text-sm">
+                                {order.customer.city}, {order.customer.zipCode}
+                              </p>
+                              <p className="text-gray-300 text-sm">{order.customer.country}</p>
+                            </>
+                          ) : (
+                            <p className="text-gray-400 text-sm italic">No shipping address provided</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Order Summary */}
+                      <div className="bg-navy-800 rounded-lg p-4 mb-4">
+                        <h4 className="flex items-center text-white font-medium mb-2">
+                          <Package className="w-4 h-4 mr-2" />
+                          Order Summary
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">{order.itemCount} item{order.itemCount !== 1 ? 's' : ''}</span>
+                            <span className="text-gray-300">${order.subtotal}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Shipping</span>
+                            <span className="text-gray-300">${order.shippingCost}</span>
+                          </div>
+                          <div className="border-t border-navy-600 pt-1 flex justify-between font-medium">
+                            <span className="text-white">Total</span>
+                            <span className="text-white">${order.totalAmount}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Special Instructions */}
+                      {order.specialInstructions && (
+                        <div className="bg-navy-800 rounded-lg p-4">
+                          <h4 className="flex items-center text-white font-medium mb-2">
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Special Instructions
+                          </h4>
+                          <p className="text-gray-300 text-sm">{order.specialInstructions}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -362,101 +402,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="newsletter">
-          <Card className="bg-navy-800 border-navy-700">
-            <CardHeader>
-              <CardTitle className="text-xl font-serif font-semibold text-white flex items-center">
-                <Mail className="w-5 h-5 mr-2" />
-                Newsletter Subscriptions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {newsletterLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="bg-navy-700 rounded-lg p-4 animate-pulse">
-                      <div className="h-4 bg-navy-600 rounded w-1/3 mb-2"></div>
-                      <div className="h-3 bg-navy-600 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : newsletterSubscriptions && newsletterSubscriptions.length > 0 ? (
-                <div className="space-y-3">
-                  {newsletterSubscriptions.map((subscription) => (
-                    <div key={subscription.id} className="flex justify-between items-center bg-navy-700 rounded-lg p-4">
-                      <div>
-                        <p className="font-medium text-white">{subscription.email}</p>
-                        <p className="text-sm text-gray-400">
-                          Subscribed: {formatDate(subscription.subscribeDate)}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUnsubscribe(subscription.email)}
-                        disabled={unsubscribeNewsletterMutation.isPending}
-                        className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No newsletter subscriptions found.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="contact">
-          <Card className="bg-navy-800 border-navy-700">
-            <CardHeader>
-              <CardTitle className="text-xl font-serif font-semibold text-white flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Contact Messages
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {contactLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="bg-navy-700 rounded-lg p-4 animate-pulse">
-                      <div className="h-4 bg-navy-600 rounded w-1/3 mb-2"></div>
-                      <div className="h-3 bg-navy-600 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : contactMessages && contactMessages.length > 0 ? (
-                <div className="space-y-4">
-                  {contactMessages.map((message) => (
-                    <div key={message.id} className="bg-navy-700 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold text-white">{message.name}</h3>
-                          <p className="text-sm text-gray-400">{message.email}</p>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {formatDateTime(message.createdAt)}
-                        </p>
-                      </div>
-                      <h4 className="font-medium text-white mb-2">{message.subject}</h4>
-                      <p className="text-sm text-gray-300">{message.message}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No contact messages found.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       <AddArtworkModal 

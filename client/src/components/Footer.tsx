@@ -43,12 +43,12 @@ export default function Footer({
   }, {} as Record<string, SocialMediaSetting>) || {};
 
   const defaultSettings = {
-    instagram: { url: '#', isVisible: true },
-    facebook: { url: '#', isVisible: true },
-    x: { url: '#', isVisible: true },
-    etsy: { url: '#', isVisible: false },
-    pinterest: { url: '#', isVisible: false },
-    tiktok: { url: '#', isVisible: false },
+    instagram: { url: '#', isEnabled: true },
+    facebook: { url: '#', isEnabled: true },
+    x: { url: '#', isEnabled: true },
+    etsy: { url: '#', isEnabled: false },
+    pinterest: { url: '#', isEnabled: false },
+    tiktok: { url: '#', isEnabled: false },
   };
 
   const getSetting = (platform: string) => 
@@ -87,7 +87,7 @@ export default function Footer({
     e.preventDefault();
     if (email) {
       try {
-        const response = await fetch("/api/newsletter/subscribe", {
+        const response = await fetch("/api/subscriptions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -147,7 +147,7 @@ export default function Footer({
           </div>
         )}
 
-        {/* Newsletter Signup */}
+        {/* Email Subscription */}
         <div className="text-center mb-8 max-w-md mx-auto">
           <h3 className="gallery-logo text-lg font-medium text-white mb-2">
             Join the Collector's List
@@ -178,7 +178,7 @@ export default function Footer({
           <div className="flex items-center space-x-4">
             {/* Social Media Links */}
             <div className="flex space-x-4">
-              {getSetting('instagram').isVisible && (
+              {getSetting('instagram').isEnabled && (
                 <a 
                   href={getSetting('instagram').url || undefined} 
                   target="_blank" 
@@ -188,7 +188,7 @@ export default function Footer({
                   <Instagram className="w-5 h-5" />
                 </a>
               )}
-              {getSetting('facebook').isVisible && (
+              {getSetting('facebook').isEnabled && (
                 <a 
                   href={getSetting('facebook').url || undefined} 
                   target="_blank" 
@@ -198,7 +198,7 @@ export default function Footer({
                   <Facebook className="w-5 h-5" />
                 </a>
               )}
-              {getSetting('x').isVisible && (
+              {getSetting('x').isEnabled && (
                 <a 
                   href={getSetting('x').url || undefined} 
                   target="_blank" 
@@ -208,7 +208,7 @@ export default function Footer({
                   <FaXTwitter className="w-5 h-5" />
                 </a>
               )}
-              {getSetting('etsy').isVisible && (
+              {getSetting('etsy').isEnabled && (
                 <a 
                   href={getSetting('etsy').url || undefined} 
                   target="_blank" 
@@ -218,7 +218,7 @@ export default function Footer({
                   <FaEtsy className="w-5 h-5" />
                 </a>
               )}
-              {getSetting('pinterest').isVisible && (
+              {getSetting('pinterest').isEnabled && (
                 <a 
                   href={getSetting('pinterest').url || undefined} 
                   target="_blank" 
@@ -228,7 +228,7 @@ export default function Footer({
                   <FaPinterest className="w-5 h-5" />
                 </a>
               )}
-              {getSetting('tiktok').isVisible && (
+              {getSetting('tiktok').isEnabled && (
                 <a 
                   href={getSetting('tiktok').url || undefined} 
                   target="_blank" 
@@ -258,8 +258,8 @@ export default function Footer({
                         <div className="flex items-center justify-between">
                           <Label className="capitalize font-medium">{platform === 'x' ? 'X (Twitter)' : platform}</Label>
                           <Switch
-                            checked={getSetting(platform).isVisible || false}
-                            onCheckedChange={(checked) => handleSocialUpdate(platform, 'isVisible', checked)}
+                            checked={getSetting(platform).isEnabled || false}
+                            onCheckedChange={(checked) => handleSocialUpdate(platform, 'isEnabled', checked)}
                           />
                         </div>
                         <div>
