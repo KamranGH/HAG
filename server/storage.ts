@@ -221,24 +221,19 @@ export class DatabaseStorage implements IStorage {
     const [subscription] = await db
       .insert(newsletterSubscriptions)
       .values({ email })
-      .onConflictDoUpdate({
-        target: newsletterSubscriptions.email,
-        set: { isActive: true },
-      })
+      .onConflictDoNothing()
       .returning();
     return subscription;
   }
 
   async getAllNewsletterSubscriptions(): Promise<NewsletterSubscription[]> {
     return await db.select().from(newsletterSubscriptions)
-      .where(eq(newsletterSubscriptions.isActive, true))
-      .orderBy(desc(newsletterSubscriptions.subscribeDate));
+      .orderBy(desc(newsletterSubscriptions.subscribedAt));
   }
 
   async unsubscribeFromNewsletter(email: string): Promise<void> {
     await db
-      .update(newsletterSubscriptions)
-      .set({ isActive: false })
+      .delete(newsletterSubscriptions)
       .where(eq(newsletterSubscriptions.email, email));
   }
 
@@ -246,8 +241,27 @@ export class DatabaseStorage implements IStorage {
   async getAllOrders(): Promise<(Order & { customer: Customer, itemCount: number })[]> {
     const ordersWithCustomers = await db
       .select({
-        ...orders,
-        customer: customers,
+        id: orders.id,
+        customerId: orders.customerId,
+        totalAmount: orders.totalAmount,
+        shippingCost: orders.shippingCost,
+        subtotal: orders.subtotal,
+        status: orders.status,
+        paymentIntentId: orders.paymentIntentId,
+        specialInstructions: orders.specialInstructions,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        customerFirstName: customers.firstName,
+        customerLastName: customers.lastName,
+        customerEmail: customers.email,
+        customerIdField: customers.id,
+        customerPhone: customers.phone,
+        customerAddress: customers.address,
+        customerCity: customers.city,
+        customerZipCode: customers.zipCode,
+        customerCountry: customers.country,
+        customerCreatedAt: customers.createdAt,
+        customerUpdatedAt: customers.updatedAt,
       })
       .from(orders)
       .innerJoin(customers, eq(orders.customerId, customers.id))
@@ -259,11 +273,32 @@ export class DatabaseStorage implements IStorage {
         const itemCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(orderItems)
-          .where(eq(orderItems.orderId, orderData.orders.id));
+          .where(eq(orderItems.orderId, orderData.id));
         
         return {
-          ...orderData.orders,
-          customer: orderData.customer,
+          id: orderData.id,
+          customerId: orderData.customerId,
+          totalAmount: orderData.totalAmount,
+          shippingCost: orderData.shippingCost,
+          subtotal: orderData.subtotal,
+          status: orderData.status,
+          paymentIntentId: orderData.paymentIntentId,
+          specialInstructions: orderData.specialInstructions,
+          createdAt: orderData.createdAt,
+          updatedAt: orderData.updatedAt,
+          customer: {
+            id: orderData.customerIdField,
+            firstName: orderData.customerFirstName,
+            lastName: orderData.customerLastName,
+            email: orderData.customerEmail,
+            phone: orderData.customerPhone,
+            address: orderData.customerAddress,
+            city: orderData.customerCity,
+            zipCode: orderData.customerZipCode,
+            country: orderData.customerCountry,
+            createdAt: orderData.customerCreatedAt,
+            updatedAt: orderData.customerUpdatedAt,
+          },
           itemCount: itemCount[0]?.count || 0,
         };
       })
@@ -287,13 +322,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrUpdateSocialMediaSetting(settingData: InsertSocialMediaSetting): Promise<SocialMediaSetting> {
-    const { platform, url, isVisible } = settingData;
+    const { platform, url, isEnabled } = settingData;
     const [setting] = await db
       .insert(socialMediaSettings)
-      .values({ platform, url, isVisible })
+      .values({ platform, url, isEnabled })
       .onConflictDoUpdate({
         target: socialMediaSettings.platform,
-        set: { url, isVisible }, // Only update the fields we want, not timestamps
+        set: { url, isEnabled }, // Only update the fields we want, not timestamps
       })
       .returning();
     return setting;
