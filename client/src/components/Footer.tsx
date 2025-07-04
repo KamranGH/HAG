@@ -96,6 +96,9 @@ export default function Footer({
         });
 
         if (response.ok) {
+          // Invalidate the admin newsletter subscriptions query to refresh the list
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/newsletter-subscriptions'] });
+          
           toast({
             title: "Subscribed!",
             description: "You've been added to our collector's list.",
