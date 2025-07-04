@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, ShoppingCart, Calendar, User, MapPin, Package, CreditCard, MessageSquare, Mail, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,8 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
   const [currentSubscriptionPage, setCurrentSubscriptionPage] = useState(1);
   const [currentContactPage, setCurrentContactPage] = useState(1);
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   const ITEMS_PER_PAGE = 5;
@@ -228,6 +230,31 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
   const ordersTotalPages = orders ? getTotalPages(orders.length) : 0;
   const subscriptionsTotalPages = subscriptions ? getTotalPages(subscriptions.length) : 0;
   const contactTotalPages = contactMessages ? getTotalPages(contactMessages.length) : 0;
+
+  // Helper functions for expandable sections
+  const toggleOrderExpansion = (orderId: number) => {
+    setExpandedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleMessageExpansion = (messageId: number) => {
+    setExpandedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
 
   // Pagination component
   const PaginationControls = ({ 
@@ -498,146 +525,152 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                 </div>
               ) : orders && orders.length > 0 ? (
                 <div className="space-y-3">
-                  {paginatedOrders.map((order) => (
-                    <div key={order.id} className="bg-navy-700 rounded-lg p-6 border border-navy-600">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-semibold text-white text-lg">Order #{order.id}</h3>
-                          <p className="text-xs text-gray-500 mt-1">
-                            <Calendar className="w-3 h-3 inline mr-1" />
-                            {formatDateTime(order.createdAt)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-white text-lg">${order.totalAmount}</p>
-                          <Badge 
-                            variant={order.status === 'completed' ? 'default' : 'secondary'}
-                            className="mt-1"
-                          >
-                            {order.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      {/* Customer Information */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="bg-navy-800 rounded-lg p-4">
-                          <h4 className="flex items-center text-white font-medium mb-2">
-                            <User className="w-4 h-4 mr-2" />
-                            Customer Details
-                          </h4>
-                          <p className="text-white">{order.customer.firstName} {order.customer.lastName}</p>
-                          <p className="text-gray-300 text-sm">{order.customer.email}</p>
-                          {order.customer.phone && (
-                            <p className="text-gray-300 text-sm">{order.customer.phone}</p>
-                          )}
-                        </div>
-                        
-                        <div className="bg-navy-800 rounded-lg p-4">
-                          <h4 className="flex items-center text-white font-medium mb-2">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            Shipping Address
-                          </h4>
-                          {order.customer.address ? (
-                            <>
-                              <p className="text-gray-300 text-sm">{order.customer.address}</p>
-                              <p className="text-gray-300 text-sm">
-                                {order.customer.city}, {order.customer.zipCode}
-                              </p>
-                              <p className="text-gray-300 text-sm">{order.customer.country}</p>
-                            </>
-                          ) : (
-                            <p className="text-gray-400 text-sm italic">No shipping address provided</p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Order Items */}
-                      <div className="bg-navy-800 rounded-lg p-4 mb-4">
-                        <h4 className="flex items-center text-white font-medium mb-3">
-                          <Package className="w-4 h-4 mr-2" />
-                          Order Items
-                        </h4>
-                        <div className="space-y-2">
-                          {order.items && order.items.length > 0 ? order.items.map((item) => (
-                            <div key={item.id} className="flex justify-between items-center p-2 bg-navy-700 rounded">
-                              <div className="flex items-center space-x-3">
-                                {item.artwork.images && item.artwork.images.length > 0 && (
-                                  <img 
-                                    src={item.artwork.images[0]} 
-                                    alt={item.artwork.title}
-                                    className="w-8 h-10 object-cover rounded"
-                                  />
+                  {paginatedOrders.map((order) => {
+                    const isExpanded = expandedOrders.has(order.id);
+                    return (
+                      <div key={order.id} className="bg-navy-700 rounded-lg border border-navy-600 overflow-hidden">
+                        {/* Compact Summary Header */}
+                        <div 
+                          className="p-4 cursor-pointer hover:bg-navy-600 transition-colors"
+                          onClick={() => toggleOrderExpansion(order.id)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-gray-400" />
                                 )}
-                                <div>
-                                  <p className="text-white text-sm font-medium">{item.artwork.title}</p>
-                                  <p className="text-gray-400 text-xs">
-                                    {item.type === 'original' ? 'Original' : `Print${item.printSize ? ` (${item.printSize})` : ''}`}
-                                  </p>
-                                </div>
+                                <h3 className="font-semibold text-white">Order #{order.id}</h3>
                               </div>
-                              <div className="text-right">
-                                <p className="text-white text-sm">Qty: {item.quantity}</p>
-                                <p className="text-gray-300 text-xs">${item.totalPrice}</p>
+                              <div className="text-sm text-gray-300">
+                                {order.customer.firstName} {order.customer.lastName}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                <Calendar className="w-3 h-3 inline mr-1" />
+                                {formatDateTime(order.createdAt)}
                               </div>
                             </div>
-                          )) : (
-                            <p className="text-gray-400 text-center py-2">No items found</p>
-                          )}
+                            <div className="flex items-center space-x-3">
+                              <div className="text-right">
+                                <p className="font-semibold text-white">${order.totalAmount}</p>
+                                <Badge 
+                                  variant={order.status === 'completed' ? 'default' : 'secondary'}
+                                  className="text-xs"
+                                >
+                                  {order.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Order Summary */}
-                      <div className="bg-navy-800 rounded-lg p-4 mb-4">
-                        <h4 className="flex items-center text-white font-medium mb-2">
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Payment Summary
-                        </h4>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">{order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}</span>
-                            <span className="text-gray-300">${order.subtotal}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Shipping</span>
-                            <span className="text-gray-300">${order.shippingCost}</span>
-                          </div>
-                          <div className="border-t border-navy-600 pt-1 flex justify-between font-medium">
-                            <span className="text-white">Total</span>
-                            <span className="text-white">${order.totalAmount}</span>
-                          </div>
-                        </div>
-                      </div>
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-navy-600 bg-navy-800">
+                            <div className="pt-4 space-y-4">
+                              {/* Customer Information */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-navy-900 rounded-lg p-4">
+                                  <h4 className="flex items-center text-white font-medium mb-2">
+                                    <User className="w-4 h-4 mr-2" />
+                                    Customer Details
+                                  </h4>
+                                  <p className="text-white">{order.customer.firstName} {order.customer.lastName}</p>
+                                  <p className="text-gray-300 text-sm">{order.customer.email}</p>
+                                  {order.customer.phone && (
+                                    <p className="text-gray-300 text-sm">{order.customer.phone}</p>
+                                  )}
+                                </div>
+                                
+                                <div className="bg-navy-900 rounded-lg p-4">
+                                  <h4 className="flex items-center text-white font-medium mb-2">
+                                    <MapPin className="w-4 h-4 mr-2" />
+                                    Shipping Address
+                                  </h4>
+                                  {order.customer.address ? (
+                                    <>
+                                      <p className="text-gray-300 text-sm">{order.customer.address}</p>
+                                      <p className="text-gray-300 text-sm">
+                                        {order.customer.city}, {order.customer.zipCode}
+                                      </p>
+                                      <p className="text-gray-300 text-sm">{order.customer.country}</p>
+                                    </>
+                                  ) : (
+                                    <p className="text-gray-400 text-sm italic">No shipping address provided</p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Order Items */}
+                              <div className="bg-navy-900 rounded-lg p-4">
+                                <h4 className="flex items-center text-white font-medium mb-3">
+                                  <Package className="w-4 h-4 mr-2" />
+                                  Order Items
+                                </h4>
+                                <div className="space-y-2">
+                                  {order.items && order.items.length > 0 ? order.items.map((item) => (
+                                    <div key={item.id} className="flex justify-between items-center p-2 bg-navy-700 rounded">
+                                      <div className="flex items-center space-x-3">
+                                        {item.artwork.images && item.artwork.images.length > 0 && (
+                                          <img 
+                                            src={item.artwork.images[0]} 
+                                            alt={item.artwork.title}
+                                            className="w-8 h-10 object-cover rounded"
+                                          />
+                                        )}
+                                        <div>
+                                          <p className="text-white text-sm font-medium">{item.artwork.title}</p>
+                                          <p className="text-gray-400 text-xs">
+                                            {item.type === 'original' ? 'Original' : `Print${item.printSize ? ` (${item.printSize})` : ''}`}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-white text-sm">Qty: {item.quantity}</p>
+                                        <p className="text-gray-300 text-xs">${item.totalPrice}</p>
+                                      </div>
+                                    </div>
+                                  )) : (
+                                    <p className="text-gray-400 text-center py-2">No items found</p>
+                                  )}
+                                </div>
+                              </div>
 
-                      {/* Order Actions */}
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs text-gray-500">
-                          Created: {formatDateTime(order.createdAt)}
-                        </div>
-                        {order.status !== 'completed' && (
-                          <Button
-                            onClick={() => handleMarkAsCompleted(order.id)}
-                            disabled={updateOrderStatusMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            size="sm"
-                          >
-                            Mark as Completed
-                          </Button>
+                              {/* Order Actions */}
+                              <div className="flex justify-between items-center">
+                                <div className="text-xs text-gray-500">
+                                  Created: {formatDateTime(order.createdAt)}
+                                </div>
+                                {order.status !== 'completed' && (
+                                  <Button
+                                    onClick={() => handleMarkAsCompleted(order.id)}
+                                    disabled={updateOrderStatusMutation.isPending}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    size="sm"
+                                  >
+                                    Mark as Completed
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              {/* Special Instructions */}
+                              {order.specialInstructions && (
+                                <div className="bg-navy-900 rounded-lg p-4">
+                                  <h4 className="flex items-center text-white font-medium mb-2">
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Special Instructions
+                                  </h4>
+                                  <p className="text-gray-300 text-sm">{order.specialInstructions}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
-                      
-                      {/* Special Instructions */}
-                      {order.specialInstructions && (
-                        <div className="bg-navy-800 rounded-lg p-4">
-                          <h4 className="flex items-center text-white font-medium mb-2">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Special Instructions
-                          </h4>
-                          <p className="text-gray-300 text-sm">{order.specialInstructions}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-400">
@@ -737,33 +770,65 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   ))}
                 </div>
               ) : contactMessages && contactMessages.length > 0 ? (
-                <div className="space-y-4">
-                  {paginatedContactMessages.map((message) => (
-                    <div key={message.id} className="bg-navy-700 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold text-white">{message.name}</h3>
-                          <p className="text-sm text-gray-400">{message.email}</p>
+                <div className="space-y-3">
+                  {paginatedContactMessages.map((message) => {
+                    const isExpanded = expandedMessages.has(message.id);
+                    return (
+                      <div key={message.id} className="bg-navy-700 rounded-lg border border-navy-600 overflow-hidden">
+                        {/* Compact Summary Header */}
+                        <div 
+                          className="p-4 cursor-pointer hover:bg-navy-600 transition-colors"
+                          onClick={() => toggleMessageExpansion(message.id)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                                )}
+                                <h3 className="font-semibold text-white">{message.name}</h3>
+                              </div>
+                              <div className="text-sm text-gray-300">{message.email}</div>
+                              <div className="text-sm text-gray-300 font-medium">{message.subject}</div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="text-xs text-gray-500">
+                                {formatDateTime(message.createdAt.toString())}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteMessage(message.id, message.name);
+                                }}
+                                disabled={deleteContactMessageMutation.isPending}
+                                className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-xs text-gray-500">
-                            {formatDateTime(message.createdAt.toString())}
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteMessage(message.id, message.name)}
-                            disabled={deleteContactMessageMutation.isPending}
-                            className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-navy-600 bg-navy-800">
+                            <div className="pt-4">
+                              <div className="bg-navy-900 rounded-lg p-4">
+                                <h4 className="text-white font-medium mb-3">Message Content</h4>
+                                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                                  {message.message}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <h4 className="font-medium text-white mb-2">{message.subject}</h4>
-                      <p className="text-sm text-gray-300">{message.message}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-400">
