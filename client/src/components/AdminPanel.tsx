@@ -181,7 +181,7 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
         <TabsList className="grid w-full grid-cols-4 bg-navy-800 mb-6">
           <TabsTrigger value="artworks" className="text-white">Artworks</TabsTrigger>
           <TabsTrigger value="orders" className="text-white">Orders</TabsTrigger>
-          <TabsTrigger value="subscription" className="text-white">Subscription</TabsTrigger>
+          <TabsTrigger value="subscription" className="text-white">Collectors</TabsTrigger>
           <TabsTrigger value="contact" className="text-white">Messages</TabsTrigger>
         </TabsList>
 
