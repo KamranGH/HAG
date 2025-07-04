@@ -290,6 +290,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
+      
+      // Check if email already exists
+      const existingSubscriptions = await storage.getAllNewsletterSubscriptions();
+      const existingSubscription = existingSubscriptions.find(sub => sub.email.toLowerCase() === email.toLowerCase());
+      
+      if (existingSubscription) {
+        return res.status(400).json({ message: "You are already subscribed to the collector's list" });
+      }
+      
       const subscription = await storage.subscribeToNewsletter(email);
       res.json({ message: "Successfully subscribed to collector's list" });
     } catch (error: any) {
@@ -305,6 +314,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
+      
+      // Check if email already exists
+      const existingSubscriptions = await storage.getAllNewsletterSubscriptions();
+      const existingSubscription = existingSubscriptions.find(sub => sub.email.toLowerCase() === email.toLowerCase());
+      
+      if (existingSubscription) {
+        return res.status(400).json({ message: "You are already subscribed to the collector's list" });
+      }
+      
       const subscription = await storage.subscribeToNewsletter(email);
       res.json({ message: "Successfully subscribed to collector's list" });
     } catch (error: any) {

@@ -439,7 +439,12 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
             <CardHeader>
               <CardTitle className="text-xl font-serif font-semibold text-white flex items-center">
                 <Mail className="w-5 h-5 mr-2" />
-                Subscription Management
+                Collector's List
+                {subscriptions && subscriptions.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {subscriptions.length} subscriber{subscriptions.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -453,14 +458,11 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
                   ))}
                 </div>
               ) : subscriptions && subscriptions.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {subscriptions.map((subscription) => (
-                    <div key={subscription.id} className="flex justify-between items-center bg-navy-700 rounded-lg p-4">
+                    <div key={subscription.id} className="flex justify-between items-center bg-navy-700 rounded-lg p-3">
                       <div>
                         <p className="font-medium text-white">{subscription.email}</p>
-                        <p className="text-sm text-gray-400">
-                          Subscribed: {formatDate(subscription.subscribedAt.toString())}
-                        </p>
                       </div>
                       <Button
                         variant="outline"
@@ -477,7 +479,8 @@ export default function AdminPanel({ onExitAdmin }: AdminPanelProps) {
               ) : (
                 <div className="text-center py-8 text-gray-400">
                   <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No subscriptions found.</p>
+                  <p>No email subscriptions found.</p>
+                  <p className="text-sm mt-1">Visitors can join the collector's list from the footer.</p>
                 </div>
               )}
             </CardContent>
